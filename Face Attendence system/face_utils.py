@@ -151,43 +151,24 @@ def _wait_for_blink(video: cv2.VideoCapture, timeout_frames: int = 300) -> bool:
 
 def capture_face_encoding(num_samples: int = NUM_ENROLLMENT_SAMPLES) -> list | None:
     """
-    Multi-angle enrollment with blink-based liveness gate.
+    Multi-angle enrollment: guide the user through head-pose prompts and
+    collect one encoding per pose for robust recognition.
+    No blink gate — captures directly.
 
-    Steps:
-      1. Ask user to blink (proves it's a real person, not a photo).
-      2. Walk through NUM_ENROLLMENT_SAMPLES head-pose prompts.
-      3. Capture one encoding per pose.
+    Args:
+        num_samples: Number of angle samples to collect (default 5)
 
     Returns:
-        List of numpy arrays, or None if cancelled/failed.
+        List of numpy face encoding arrays, or None if cancelled / failed.
     """
     video = cv2.VideoCapture(0)
     if not video.isOpened():
         logger.error("Could not open webcam.")
         return None
 
-    logger.info("Enrollment started — waiting for blink liveness check.")
-
-    # ── Step 1: Blink gate ──
-    blinked = _wait_for_blink(video, timeout_frames=400)
-    if not blinked:
-        video.release()
-        cv2.destroyAllWindows()
-        logger.warning("Liveness check failed or cancelled.")
-        return None
-
-    # Brief confirmation
-    ret, confirm_frame = video.read()
-    if ret:
-        cv2.putText(confirm_frame, "✓ Liveness confirmed! Starting capture...",
-                    (12, 40), cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 255, 100), 2)
-        cv2.imshow("Face Enrollment - FaceTrack", confirm_frame)
-        cv2.waitKey(800)
-
-    # ── Step 2: Multi-angle capture ──
     encodings_collected = []
     prompts = ENROLLMENT_PROMPTS[:num_samples]
-    logger.info(f"Collecting {num_samples} pose encodings.")
+    logger.info(f"Starting enrollment: {num_samples} poses.")
 
     while len(encodings_collected) < num_samples:
         ret, frame = video.read()
@@ -218,6 +199,7 @@ def capture_face_encoding(num_samples: int = NUM_ENROLLMENT_SAMPLES) -> list | N
                 encodings_collected.append(encs[0])
                 logger.info(f"Pose {len(encodings_collected)}/{num_samples} captured: "
                             f"{current_prompt}")
+                # Brief green flash to confirm capture
                 confirm = frame.copy()
                 cv2.rectangle(confirm, (left, top), (right, bottom), (0, 255, 100), 4)
                 cv2.putText(confirm, "Captured!", (left, top - 12),
@@ -248,39 +230,75 @@ def capture_face_encoding(num_samples: int = NUM_ENROLLMENT_SAMPLES) -> list | N
     return encodings_collected
 
 
+# ── Cached known encodings (rebuilt only when students list changes) ───────────
+_cached_encs  = []
+_cached_names = []
+_cached_ids   = []
+_cached_hash  = 0   # hash of student list to detect changes
+
+
+def _rebuild_cache(known_students: list):
+    """Flatten all student encodings into parallel lists for fast comparison."""
+    global _cached_encs, _cached_names, _cached_ids, _cached_hash
+    new_hash = hash(tuple(s["student_id"] for s in known_students))
+    if new_hash == _cached_hash:
+        return   # nothing changed, reuse cache
+    encs, names, ids = [], [], []
+    for s in known_students:
+        enc_list = s["encoding"] if isinstance(s["encoding"], list) else [s["encoding"]]
+        encs.extend(enc_list)
+        names.extend([s["name"]]       * len(enc_list))
+        ids.extend([s["student_id"]]   * len(enc_list))
+    _cached_encs  = encs
+    _cached_names = names
+    _cached_ids   = ids
+    _cached_hash  = new_hash
+    logger.info(f"Encoding cache rebuilt: {len(known_students)} students, "
+                f"{len(encs)} total encodings.")
+
+
 # ── Recognition ────────────────────────────────────────────────────────────────
 
 def recognize_faces_in_frame(frame: np.ndarray, known_students: list) -> list:
     """
-    Detect and identify all faces in a single video frame.
+    Detect and identify all faces in a single VIDEO frame.
+
+    Pipeline:
+      1. Resize frame to 50% for faster HOG face detection
+      2. Convert BGR → RGB (face_recognition expects RGB)
+      3. Locate faces using HOG model
+      4. Compute 128-dim encodings for each face
+      5. Compare against cached known encodings
+      6. Apply TOLERANCE + MIN_CONFIDENCE threshold
+      7. Scale bounding boxes back to original frame size
 
     Args:
-        frame:          BGR image from OpenCV
+        frame:          BGR image from OpenCV (live video frame)
         known_students: List of dicts with student_id, name, encoding
 
     Returns:
         List of result dicts:
             name        – recognised name or "Unknown"
             student_id  – ID string or ""
-            location    – (top, right, bottom, left)
+            location    – (top, right, bottom, left) in ORIGINAL frame coords
             confidence  – 0–100 float
-            spoof       – always True (live spoof disabled; handled at enrollment)
     """
-    small  = cv2.resize(frame, (0, 0), fx=FRAME_SCALE, fy=FRAME_SCALE)
+    # Rebuild encoding cache if student list changed
+    _rebuild_cache(known_students)
+
+    # Resize to 50% for faster detection (better than 25% for laptop cameras)
+    small  = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
     rgb_sm = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
 
+    # Detect face locations in downsampled frame
     face_locations = face_recognition.face_locations(rgb_sm, model="hog")
-    face_encodings = face_recognition.face_encodings(rgb_sm, face_locations)
+    if not face_locations:
+        return []
 
-    # Flatten known encodings
-    known_encs, known_names, known_ids = [], [], []
-    for s in known_students:
-        encs = s["encoding"] if isinstance(s["encoding"], list) else [s["encoding"]]
-        known_encs.extend(encs)
-        known_names.extend([s["name"]]       * len(encs))
-        known_ids.extend([s["student_id"]]   * len(encs))
+    # Compute encodings only for detected faces
+    face_encodings = face_recognition.face_encodings(
+        rgb_sm, face_locations, num_jitters=1)
 
-    scale   = int(1 / FRAME_SCALE)
     results = []
 
     for enc, loc in zip(face_encodings, face_locations):
@@ -288,49 +306,101 @@ def recognize_faces_in_frame(frame: np.ndarray, known_students: list) -> list:
         student_id = ""
         confidence = 0.0
 
-        if known_encs:
-            distances      = face_recognition.face_distance(known_encs, enc)
-            best_idx       = int(np.argmin(distances))
-            best_dist      = distances[best_idx]
-            raw_conf       = round((1 - best_dist) * 100, 1)
+        if _cached_encs:
+            distances  = face_recognition.face_distance(_cached_encs, enc)
+            best_idx   = int(np.argmin(distances))
+            best_dist  = distances[best_idx]
+            raw_conf   = round((1 - best_dist) * 100, 1)
 
             if best_dist <= TOLERANCE and raw_conf >= MIN_CONFIDENCE:
-                name       = known_names[best_idx]
-                student_id = known_ids[best_idx]
+                name       = _cached_names[best_idx]
+                student_id = _cached_ids[best_idx]
                 confidence = raw_conf
 
-        top, right, bottom, left = [c * scale for c in loc]
+        # Scale bounding box coordinates back to original frame size (×2)
+        top, right, bottom, left = [c * 2 for c in loc]
 
         results.append({
             "name":       name,
             "student_id": student_id,
             "location":   (top, right, bottom, left),
             "confidence": confidence,
-            "spoof":      True,   # liveness is enforced at enrollment
         })
 
     return results
 
 
-def draw_face_annotations(frame: np.ndarray, face_results: list) -> np.ndarray:
+def draw_face_annotations(frame: np.ndarray, face_results: list,
+                          just_marked: set = None) -> np.ndarray:
     """
-    Draw bounding boxes and name/confidence labels.
+    Draw bounding boxes, labels, and a ✓ tick for newly marked students.
 
-    Cyan  = recognised
-    Red   = unknown
+    Colours:
+      Bright green + tick  = attendance just marked this recognition cycle
+      Cyan                 = recognised, already marked earlier
+      Red                  = unknown face
+    
+    Args:
+        frame:        BGR image from OpenCV
+        face_results: Output from recognize_faces_in_frame()
+        just_marked:  Set of student_ids marked in the CURRENT frame cycle
     """
+    if just_marked is None:
+        just_marked = set()
+
     for r in face_results:
         top, right, bottom, left = r["location"]
         name       = r["name"]
         confidence = r["confidence"]
+        sid        = r.get("student_id", "")
+        is_new     = sid and sid in just_marked
 
-        color = (0, 212, 255) if name != "Unknown" else (0, 0, 200)
+        if is_new:
+            color = (0, 255, 100)       # bright green — just marked
+        elif name != "Unknown":
+            color = (0, 212, 255)       # cyan — recognised
+        else:
+            color = (0, 0, 200)         # red — unknown
 
-        cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+        # ── Bounding box ──────────────────────────────────────────────────────
+        thickness = 3 if is_new else 2
+        cv2.rectangle(frame, (left, top), (right, bottom), color, thickness)
+
+        # ── Corner tick marks (makes box look more polished) ──────────────────
+        ln = 18  # corner line length
+        for (cx, cy, dx, dy) in [
+            (left,  top,    1,  1), (right, top,   -1,  1),
+            (left,  bottom, 1, -1), (right, bottom,-1, -1)
+        ]:
+            cv2.line(frame, (cx, cy), (cx + dx*ln, cy), color, 2)
+            cv2.line(frame, (cx, cy), (cx, cy + dy*ln), color, 2)
+
+        # ── Label background ──────────────────────────────────────────────────
         cv2.rectangle(frame, (left, bottom - 36), (right, bottom), color, cv2.FILLED)
 
         label = f"{name}  {confidence:.0f}%" if name != "Unknown" and confidence > 0 else name
         cv2.putText(frame, label, (left + 6, bottom - 8),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.55, (255, 255, 255), 1)
+                    cv2.FONT_HERSHEY_DUPLEX, 0.52, (255, 255, 255), 1)
+
+        # ── Big ✓ tick for newly marked ───────────────────────────────────────
+        if is_new:
+            cx = (left + right) // 2
+            cy = top - 18
+
+            # Tick background circle
+            cv2.circle(frame, (cx, cy), 22, (0, 255, 100), -1)
+            cv2.circle(frame, (cx, cy), 22, (255, 255, 255), 2)
+
+            # Draw ✓ using two lines
+            # Short stroke: bottom-left of tick
+            cv2.line(frame, (cx - 11, cy),
+                     (cx - 4,  cy + 8), (0, 60, 20), 3)
+            # Long stroke: up-right
+            cv2.line(frame, (cx - 4,  cy + 8),
+                     (cx + 12, cy - 10), (0, 60, 20), 3)
+
+            # "Marked!" text above tick
+            cv2.putText(frame, "Marked!", (left, top - 48),
+                        cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 255, 100), 2)
 
     return frame

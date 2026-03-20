@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FaceTrack — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/shared.css">
+<style>
+.sb-logo h2{color:var(--accent);}
+.nav-item.active{color:var(--accent);}
+.settings-group{margin-bottom:20px;}
+.settings-group h4{font-size:.78rem;font-weight:600;color:var(--accent);
+  margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sb-logo"><div class="icon">🎓</div><h2>FaceTrack</h2><p>Admin Panel</p></div>
+  <nav>
+    <div class="nav-item active" onclick="show('overview')">📊 Overview</div>
+    <div class="nav-item" onclick="show('live')">📷 Live Attendance</div>
+    <div class="nav-item" onclick="show('students')">👤 Students</div>
+    <div class="nav-item" onclick="show('teachers')">👩‍🏫 Teachers</div>
+    <div class="nav-item" onclick="show('attendance')">📋 Attendance</div>
+    <div class="nav-item" onclick="show('settings')">⚙ Settings</div>
+  </nav>
+  <div class="sb-footer"><a href="/logout" class="logout-a">Sign Out</a></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 id="sec-title">Overview</h1>
+    <div style="display:flex;gap:8px">
+      <span class="tbadge" style="color:var(--accent)">🔐 Admin</span>
+      <span class="tbadge" style="color:var(--text2)">{{ today }}</span>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- Overview -->
+    <div class="sec active" id="s-overview">
+      <div class="stats cols3">
+        <div class="sc c-cyan"><div class="num" id="ov-students">{{ total_students }}</div><div class="lbl">Total Students</div></div>
+        <div class="sc c-green"><div class="num" id="ov-today">{{ today_count }}</div><div class="lbl">Marked Today</div></div>
+        <div class="sc c-amber"><div class="num" id="ov-teachers">{{ total_teachers }}</div><div class="lbl">Teachers</div></div>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent)">📅 Today's Attendance</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Student ID</th><th>Name</th><th>Slot</th><th>Time</th><th>By</th></tr></thead>
+          <tbody id="ov-tbody">
+            {% for r in today_records %}
+            <tr><td>{{ r.student_id }}</td><td>{{ r.name }}</td>
+              <td><span class="slot-code">{{ r.slot }}</span></td>
+              <td>{{ r.time }}</td>
+              <td style="color:var(--text3);font-size:.75rem">{{ r.marked_by }}</td></tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">No attendance yet today.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Live Attendance -->
+    <div class="sec" id="s-live">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
+        <div>
+          <div class="cam-wrap">
+            <img id="cam-img" src="/video_feed" alt="camera feed"
+                 onerror="this.src='/video_feed?t='+Date.now()">
+            <div class="cam-overlay">
+              <span class="cam-badge" id="cam-badge" style="{% if camera_running %}background:#0d2e1ebb;color:var(--success);border:1px solid #1a4f32{% else %}background:#3d1520bb;color:var(--danger);border:1px solid #7f1d2a{% endif %}">
+                {{ '● Live' if camera_running else '● Offline' }}
+              </span>
+              <span class="cam-badge" id="slot-badge" style="background:#0d1526bb;color:var(--accent2);border:1px solid var(--border)">
+                Loading slot…
+              </span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn btn-success" onclick="camStart()">▶ Start Camera</button>
+            <button class="btn btn-danger"  onclick="camStop()">⏹ Stop</button>
+            <button class="btn" style="background:var(--glass2);color:var(--text2)" onclick="refreshStudents()">⟳ Refresh Students</button>
+          </div>
+          <div id="spoof-alert" style="margin-top:10px;display:none;padding:8px 14px;border-radius:8px;
+            background:#3d1520;color:var(--danger);border:1px solid #7f1d2a;font-size:.83rem"></div>
+        </div>
+        <div>
+          <div class="card" style="height:100%">
+            <h3 style="color:var(--accent)">Today's Log</h3>
+            <div id="live-log" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto"></div>
+            <div style="margin-top:10px;font-size:.75rem;color:var(--text3)">
+              Total today: <span id="live-total" style="color:var(--success);font-weight:700">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students -->
+    <div class="sec" id="s-students">
+      <div class="card">
+        <h3 style="color:var(--accent)">👤 All Students</h3>
+        <a href="/enroll" class="btn btn-primary" style="text-decoration:none;display:inline-block;margin-bottom:14px">➕ Register New Student</a>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Branch</th><th>DOB</th><th>Registered</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ s.student_id }}</td><td>{{ s.name }}</td>
+              <td>{{ s.class_name }}</td><td>{{ s.branch }}</td>
+              <td>{{ s.dob }}</td>
+              <td style="color:var(--text3);font-size:.75rem">{{ s.registered_at[:10] if s.registered_at else '—' }}</td>
+              <td>
+                <a href="/teacher/student/{{ s.student_id }}" class="btn btn-sm btn-primary" style="text-decoration:none">View</a>
+                <button class="btn btn-sm btn-danger"
+                        data-sid="{{ s.student_id }}"
+                        data-name="{{ s.name }}"
+                        onclick="delStudent(this.dataset.sid, this.dataset.name)">Del</button>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No students yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Teachers -->
+    <div class="sec" id="s-teachers">
+      <div class="card">
+        <h3 style="color:var(--accent)">➕ Add Teacher</h3>
+        <div class="fg c2">
+          <div class="f"><label>TEACHER ID</label><input id="t-id" placeholder="T001"></div>
+          <div class="f"><label>FULL NAME</label><input id="t-name" placeholder="Dr. Jane Smith"></div>
+          <div class="f"><label>EMAIL</label><input id="t-email" type="email" placeholder="jane@school.edu"></div>
+          <div class="f"><label>PASSWORD</label><input id="t-pass" type="password" placeholder="••••••••"></div>
+          <div class="f"><label>SUBJECT</label><input id="t-sub" placeholder="Mathematics"></div>
+          <div class="f"><label>CLASS ASSIGNED</label>
+            <select id="t-cls"><option value="">— None —</option>
+              {% for c in classes %}<option>{{ c }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addTeacher()">➕ Add Teacher</button>
+        <div class="imsg" id="t-msg"></div>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent)">👩‍🏫 All Teachers</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Subject</th><th>Class</th><th>Action</th></tr></thead>
+          <tbody id="t-tbody">
+            {% for t in teachers %}
+            {% if t.teacher_id %}
+            <tr id="tr-{{ t.teacher_id }}">
+              <td>{{ t.teacher_id }}</td><td>{{ t.name }}</td>
+              <td>{{ t.email }}</td><td>{{ t.subject }}</td><td>{{ t.class_assigned }}</td>
+              <td><button class="btn btn-sm btn-danger"
+                  data-tid="{{ t.teacher_id }}"
+                  onclick="delTeacher(this.dataset.tid)">Delete</button></td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No teachers yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Attendance -->
+    <div class="sec" id="s-attendance">
+      <div class="card">
+        <h3 style="color:var(--accent)">📋 Attendance Records</h3>
+        <div class="fbar">
+          <input type="date" id="f-date" value="{{ today }}">
+          <select id="f-class"><option value="">All Classes</option>
+            {% for c in classes %}<option>{{ c }}</option>{% endfor %}</select>
+          <select id="f-slot"><option value="">All Slots</option>
+            {% for s in slots %}<option>{{ s.label }}</option>{% endfor %}</select>
+          <button class="btn btn-primary btn-sm" onclick="filterAtt()">Filter</button>
+          <button class="btn btn-sm" style="background:var(--glass2);color:var(--text2)" onclick="loadAllAtt()">All</button>
+          <a href="/admin/export" class="btn btn-success btn-sm" style="text-decoration:none">📊 Export</a>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>ID</th><th>Name</th><th>Date</th><th>Slot</th><th>Time</th><th>By</th></tr></thead>
+          <tbody id="att-tbody">
+            {% for r in records[:100] %}
+            <tr><td>{{ r.student_id }}</td><td>{{ r.name }}</td><td>{{ r.date }}</td>
+              <td><span class="slot-code">{{ r.slot }}</span></td>
+              <td>{{ r.time }}</td><td style="color:var(--text3);font-size:.75rem">{{ r.marked_by }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="sec" id="s-settings">
+      <div class="card">
+        <h3 style="color:var(--accent)">⚙ System Settings</h3>
+        <div class="settings-group">
+          <h4>🕐 Working Hours & Slots</h4>
+          <div class="fg c3">
+            <div class="f"><label>DAY START</label><input id="s-day_start" value="{{ settings.day_start }}"></div>
+            <div class="f"><label>DAY END</label><input id="s-day_end" value="{{ settings.day_end }}"></div>
+            <div class="f"><label>SLOT DURATION (MIN)</label><input id="s-slot_duration" value="{{ settings.slot_duration }}"></div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h4>🍽 Break</h4>
+          <div class="fg c2">
+            <div class="f"><label>BREAK START</label><input id="s-break_start" value="{{ settings.break_start }}"></div>
+            <div class="f"><label>BREAK END</label><input id="s-break_end" value="{{ settings.break_end }}"></div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h4>⚙ Recognition</h4>
+          <div class="fg c3">
+            <div class="f"><label>MIN CONFIDENCE %</label><input id="s-confidence_threshold" value="{{ settings.confidence_threshold }}"></div>
+            <div class="f"><label>COOLDOWN (MIN)</label><input id="s-cooldown_minutes" value="{{ settings.cooldown_minutes }}"></div>
+            <div class="f"><label>CAMERA INDEX</label><input id="s-camera_index" value="{{ settings.camera_index }}"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        <div class="imsg" id="s-msg"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const secs   = ['overview','live','students','teachers','attendance','settings'];
+const titles = {overview:'Overview',live:'Live Attendance',students:'Students',
+                teachers:'Teachers',attendance:'Attendance',settings:'Settings'};
+
+function show(name) {
+  secs.forEach(s => {
+    document.getElementById(`s-${s}`)?.classList.toggle('active', s===name);
+  });
+  document.querySelectorAll('.nav-item').forEach((el,i) => el.classList.toggle('active', secs[i]===name));
+  document.getElementById('sec-title').textContent = titles[name];
+  if (name==='attendance') loadAllAtt();
+  if (name==='live') startLivePoll();
+}
+
+// ── Camera ──
+async function camStart() {
+  const r = await fetch('/camera/start',{method:'POST'});
+  const j = await r.json();
+  toast(j.msg, j.ok);
+  if(j.ok) {
+    updateCamBadge(true);
+    setTimeout(()=>{
+      const img = document.getElementById('cam-img');
+      if(img) img.src = '/video_feed?t=' + Date.now();
+    }, 800);
+  }
+}
+async function camStop() {
+  const r = await fetch('/camera/stop',{method:'POST'});
+  const j = await r.json();
+  toast(j.msg, j.ok);
+  updateCamBadge(false);
+  const img = document.getElementById('cam-img');
+  if(img) img.src = '/video_feed?t=' + Date.now();
+}
+async function refreshStudents() {
+  await fetch('/camera/stop',{method:'POST'});
+  await new Promise(r => setTimeout(r, 500));
+  await fetch('/camera/start',{method:'POST'});
+  const img = document.getElementById('cam-img');
+  if(img) img.src = '/video_feed?t=' + Date.now();
+  toast('Students refreshed.', true);
+}
+function updateCamBadge(live) {
+  const b = document.getElementById('cam-badge');
+  if (live) { b.textContent='● Live'; b.style.cssText='background:#0d2e1ebb;color:var(--success);border:1px solid #1a4f32'; }
+  else       { b.textContent='● Offline'; b.style.cssText='background:#3d1520bb;color:var(--danger);border:1px solid #7f1d2a'; }
+}
+
+let pollTimer = null;
+function startLivePoll() { if (pollTimer) return; pollTimer = setInterval(pollStatus, 2000); }
+async function pollStatus() {
+  try {
+    const r = await fetch('/camera/status');
+    const j = await r.json();
+    updateCamBadge(j.running);
+    document.getElementById('slot-badge').textContent = j.slot ? `Slot: ${j.slot}` : 'No active slot';
+    document.getElementById('live-total').textContent   = j.today;
+    document.getElementById('ov-today').textContent     = j.today;
+    // Also update other overview stats
+    const s = document.getElementById('ov-students');
+    if (s) s.textContent = j.total_students || s.textContent;
+    const sa = document.getElementById('spoof-alert');
+    if (j.spoof_alert) { sa.textContent=j.spoof_alert; sa.style.display='block'; }
+    else               { sa.style.display='none'; }
+    renderLiveLog(j.records);
+  } catch(e){}
+}
+function renderLiveLog(recs) {
+  const el = document.getElementById('live-log');
+  el.innerHTML = recs.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:7px 10px;background:var(--glass2);border-radius:8px;border:1px solid var(--border)">
+      <div>
+        <div style="font-size:.83rem;font-weight:600;color:var(--text)">${r.name}</div>
+        <div style="font-size:.72rem;color:var(--text3)">${r.student_id}</div>
+      </div>
+      <div style="text-align:right">
+        <div><span class="slot-code">${r.slot||''}</span></div>
+        <div style="font-size:.72rem;color:var(--text3)">${r.time}</div>
+      </div>
+    </div>`).join('') || '<div style="color:var(--text3);font-size:.82rem;text-align:center;padding:20px">No marks yet today.</div>';
+}
+
+// ── Students ──
+// ── Overview stats refresh ──
+async function refreshOverview() {
+  try {
+    const j = await (await fetch('/admin/stats')).json();
+    const s = document.getElementById('ov-students');
+    const t = document.getElementById('ov-teachers');
+    const d = document.getElementById('ov-today');
+    if (s) s.textContent = j.total_students;
+    if (t) t.textContent = j.total_teachers;
+    if (d) d.textContent = j.today_count;
+  } catch(e) {}
+}
+
+// Auto-refresh overview every 5 seconds
+setInterval(refreshOverview, 5000);
+
+async function delTeacher(tid) {
+  if (!confirm(`Delete teacher "${tid}"?\nThis cannot be undone.`)) return;
+  await apiPost(`/admin/delete_teacher/${tid}`, {}, async (j) => {
+    if (j.ok) {
+      toast(j.msg, true);
+      await refreshOverview();       // ← update stats immediately
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(j.msg || 'Delete failed.', false);
+    }
+  });
+}
+
+async function delStudent(sid, name) {
+  if (!confirm(`Delete student "${name}" (${sid})?\nAll attendance records will be removed.`)) return;
+  await apiPost(`/admin/delete_student/${sid}`, {}, async (j) => {
+    if (j.ok) {
+      toast(j.msg, true);
+      await refreshOverview();       // ← update stats immediately
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      toast(j.msg || 'Delete failed.', false);
+    }
+  });
+}
+
+// Shared safe POST helper — always returns parsed JSON or shows error
+async function apiPost(url, data, onSuccess) {
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept':        'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(data)
+    });
+    const text = await r.text();
+    let j;
+    try {
+      j = JSON.parse(text);
+    } catch (_) {
+      // Server returned HTML (login page or error page)
+      if (text.includes('login') || r.status === 401 || r.status === 302) {
+        toast('Session expired — please refresh and log in again.', false);
+      } else {
+        toast(`Server error (${r.status}). Check app.log for details.`, false);
+        console.error('Non-JSON response:', text.substring(0, 300));
+      }
+      return;
+    }
+    if (r.status === 401) {
+      toast(j.msg || 'Session expired.', false);
+      return;
+    }
+    onSuccess(j);
+  } catch (e) {
+    toast('Network error: ' + e.message, false);
+  }
+}
+
+async function addTeacher() {
+  const fd = new FormData();
+  fd.append('teacher_id',    document.getElementById('t-id').value.trim());
+  fd.append('name',          document.getElementById('t-name').value.trim());
+  fd.append('email',         document.getElementById('t-email').value.trim());
+  fd.append('password',      document.getElementById('t-pass').value.trim());
+  fd.append('subject',       document.getElementById('t-sub').value.trim());
+  fd.append('class_assigned',document.getElementById('t-cls').value);
+  try {
+    const r    = await fetch('/admin/add_teacher', {method:'POST', body:fd});
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); } catch(_) {
+      showImsg('t-msg','Server error. Check app.log.', false); return;
+    }
+    showImsg('t-msg', j.msg, j.ok);
+    if (j.ok) setTimeout(() => location.reload(), 1200);
+  } catch(e) {
+    showImsg('t-msg', 'Network error: ' + e.message, false);
+  }
+}
+
+// ── Attendance ──
+async function filterAtt() {
+  const date=document.getElementById('f-date').value;
+  const cls=document.getElementById('f-class').value;
+  const slot=document.getElementById('f-slot').value;
+  const r = await fetch(`/teacher/attendance?date=${date}&class=${cls}&slot=${slot}`);
+  renderAtt(await r.json());
+}
+async function loadAllAtt() {
+  const r = await fetch('/teacher/attendance');
+  renderAtt(await r.json());
+}
+function renderAtt(rows) {
+  document.getElementById('att-tbody').innerHTML = rows.length
+    ? rows.map(r=>`<tr>
+        <td>${r.student_id}</td><td>${r.name}</td><td>${r.date}</td>
+        <td><span class="slot-code">${r.slot||''}</span></td>
+        <td>${r.time}</td>
+        <td style="color:var(--text3);font-size:.75rem">${r.marked_by||'auto'}</td></tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No records found.</td></tr>';
+}
+
+// ── Settings ──
+async function saveSettings() {
+  const keys=['day_start','day_end','slot_duration','break_start','break_end',
+              'confidence_threshold','cooldown_minutes','camera_index'];
+  const fd = new FormData();
+  keys.forEach(k => fd.append(k, document.getElementById(`s-${k}`).value));
+  const r = await fetch('/admin/settings',{method:'POST',body:fd});
+  const j = await r.json();
+  showImsg('s-msg', j.msg, j.ok);
+}
+
+// ── Utils ──
+function toast(msg, ok) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${ok?'ok':'err'}`;
+  el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 3000);
+}
+function showImsg(id, msg, ok) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.className = `imsg ${ok?'ok':'err'}`;
+  el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 3500);
+}
+</script>
+</body>
+</html>

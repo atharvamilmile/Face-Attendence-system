@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FaceTrack — Teacher</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/shared.css">
+<style>
+.sb-logo h2{color:var(--warning);}
+.nav-item.active{color:var(--warning);}
+thead th{color:var(--warning);}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sb-logo"><div class="icon">👩‍🏫</div><h2>Teacher Portal</h2><p>{{ teacher_name }}</p></div>
+  <nav>
+    <div class="nav-item active" onclick="show('overview')">📊 Overview</div>
+    <div class="nav-item" onclick="show('live')">📷 Live Attendance</div>
+    <div class="nav-item" onclick="show('students')">👤 Students</div>
+    <div class="nav-item" onclick="show('attendance')">📋 Records</div>
+    <div class="nav-item" onclick="show('manual')">✏️ Manual Mark</div>
+    <div class="nav-item" onclick="window.location='/enroll'">➕ Register Student</div>
+  </nav>
+  <div class="sb-footer"><a href="/logout" class="logout-a">Sign Out</a></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 id="sec-title">Overview</h1>
+    <div style="display:flex;gap:8px">
+      <span class="tbadge" style="color:var(--warning)">👩‍🏫 {{ teacher_name }}</span>
+      <span class="tbadge" style="color:var(--text2)">{{ today }}</span>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- Overview -->
+    <div class="sec active" id="s-overview">
+      <div class="stats cols3">
+        <div class="sc c-cyan"><div class="num">{{ students_summary|length }}</div><div class="lbl">Total Students</div></div>
+        <div class="sc c-green"><div class="num" id="ov-today">{{ today_records|length }}</div><div class="lbl">Marked Today</div></div>
+        <div class="sc c-purple">
+          <div class="num">{% if students_summary %}{{ (students_summary|map(attribute='percentage')|sum / students_summary|length)|round(1) }}%{% else %}0%{% endif %}</div>
+          <div class="lbl">Avg Attendance</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>📅 Today's Attendance</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>ID</th><th>Name</th><th>Slot</th><th>Time</th></tr></thead>
+          <tbody>
+            {% for r in today_records %}
+            <tr><td>{{ r.student_id }}</td><td>{{ r.name }}</td>
+              <td><span class="slot-code">{{ r.slot }}</span></td><td>{{ r.time }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">No records today.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Live Attendance -->
+    <div class="sec" id="s-live">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
+        <div>
+          <div class="cam-wrap">
+            <img src="/video_feed" alt="live feed">
+            <div class="cam-overlay">
+              <span class="cam-badge" id="cam-badge"
+                style="{% if camera_running %}background:#0d2e1ebb;color:var(--success);border:1px solid #1a4f32{% else %}background:#3d1520bb;color:var(--danger);border:1px solid #7f1d2a{% endif %}">
+                {{ '● Live' if camera_running else '● Offline' }}</span>
+              <span class="cam-badge" id="slot-badge"
+                style="background:#0d1526bb;color:var(--accent2);border:1px solid var(--border)">Loading…</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn btn-success" onclick="camStart()">▶ Start Camera</button>
+            <button class="btn btn-danger"  onclick="camStop()">⏹ Stop</button>
+          </div>
+          <div id="spoof-alert" style="margin-top:10px;display:none;padding:8px 14px;border-radius:8px;
+            background:#3d1520;color:var(--danger);border:1px solid #7f1d2a;font-size:.83rem"></div>
+        </div>
+        <div class="card" style="height:fit-content">
+          <h3>Today's Log</h3>
+          <div id="live-log" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto"></div>
+          <div style="margin-top:10px;font-size:.75rem;color:var(--text3)">
+            Total: <span id="live-total" style="color:var(--success);font-weight:700">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students -->
+    <div class="sec" id="s-students">
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start">
+
+        <!-- Left: student list -->
+        <div class="card" style="margin-bottom:0">
+          <h3>👤 All Students</h3>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+            <input class="search" type="text" placeholder="🔍 Search name or ID…"
+                   oninput="searchStu(this.value)" style="flex:1;min-width:160px">
+            <a href="/enroll" class="btn btn-primary btn-sm" style="text-decoration:none;white-space:nowrap">➕ Add Student</a>
+          </div>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>ID</th><th>Name</th><th>Class</th><th>Branch</th>
+              <th>DOB</th><th>Registered</th><th></th>
+            </tr></thead>
+            <tbody id="stu-tbody">
+              {% for s in students_summary %}
+              <tr data-q="{{ s.name|lower }} {{ s.student_id|lower }}"
+                  onclick="loadProfile('{{ s.student_id }}')"
+                  style="cursor:pointer" id="str-{{ s.student_id }}">
+                <td>{{ s.student_id }}</td>
+                <td>{{ s.name }}</td>
+                <td>{{ s.class_name }}</td>
+                <td>{{ s.branch }}</td>
+                <td>{{ s.dob }}</td>
+                <td style="color:var(--text3);font-size:.75rem">
+                  {{ s.registered_at[:10] if s.registered_at else '—' }}
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-primary"
+                          onclick="event.stopPropagation();loadProfile('{{ s.student_id }}')">
+                    View
+                  </button>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">
+                No students yet.
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table></div>
+        </div>
+
+        <!-- Right: student profile panel -->
+        <div id="profile-panel" style="display:none;position:sticky;top:70px">
+          <div class="card" style="margin-bottom:0">
+
+            <!-- Profile header -->
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+              <div id="pp-avatar" style="width:56px;height:56px;border-radius:50%;
+                background:linear-gradient(135deg,#065f46,var(--success));
+                display:flex;align-items:center;justify-content:center;
+                font-size:1.5rem;font-weight:700;color:#fff;flex-shrink:0;
+                border:2px solid var(--border2)">?</div>
+              <div>
+                <div id="pp-name"   style="font-weight:700;font-size:1rem"></div>
+                <div id="pp-id"     style="font-size:.75rem;color:var(--text2);margin-top:2px"></div>
+                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                  <span id="pp-class"  class="tbadge" style="color:var(--success)"></span>
+                  <span id="pp-branch" class="tbadge" style="color:var(--text2)"></span>
+                </div>
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
+
+            <!-- Stats row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+              <div style="background:var(--glass2);border:1px solid var(--border);border-radius:10px;
+                padding:12px 10px;text-align:center">
+                <div id="pp-total" style="font-size:1.5rem;font-weight:700;color:var(--accent)">—</div>
+                <div style="font-size:.68rem;color:var(--text2);margin-top:2px">Total</div>
+              </div>
+              <div style="background:var(--glass2);border:1px solid var(--border);border-radius:10px;
+                padding:12px 10px;text-align:center">
+                <div id="pp-present" style="font-size:1.5rem;font-weight:700;color:var(--success)">—</div>
+                <div style="font-size:.68rem;color:var(--text2);margin-top:2px">Present</div>
+              </div>
+              <div style="background:var(--glass2);border:1px solid var(--border);border-radius:10px;
+                padding:12px 10px;text-align:center">
+                <div id="pp-pct" style="font-size:1.5rem;font-weight:700;color:#a78bfa">—</div>
+                <div style="font-size:.68rem;color:var(--text2);margin-top:2px">Rate</div>
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div style="background:var(--glass);border-radius:99px;height:8px;overflow:hidden;margin-bottom:6px">
+              <div id="pp-bar" style="height:100%;border-radius:99px;width:0%;
+                background:linear-gradient(90deg,var(--accent2),var(--success));
+                transition:width .8s ease"></div>
+            </div>
+            <div id="pp-pct-lbl" style="font-size:.78rem;color:var(--success);font-weight:600;margin-bottom:14px"></div>
+
+            <!-- Today's slots -->
+            <div style="font-size:.72rem;color:var(--text2);margin-bottom:6px">Today's Slots:</div>
+            <div id="pp-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+            <!-- Recent records -->
+            <div style="font-size:.78rem;font-weight:600;color:var(--warning);margin-bottom:8px">Recent Records</div>
+            <div id="pp-records" style="display:flex;flex-direction:column;gap:5px;
+              max-height:180px;overflow-y:auto"></div>
+
+            <!-- Action buttons -->
+            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+              <a id="pp-full-link" href="#" class="btn btn-primary btn-sm"
+                 style="text-decoration:none">Full Profile →</a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="profile-empty" style="display:flex;flex-direction:column;align-items:center;
+          justify-content:center;background:var(--glass);border:1px solid var(--border);
+          border-radius:14px;padding:40px 20px;text-align:center;color:var(--text3)">
+          <div style="font-size:2rem;margin-bottom:10px">👆</div>
+          <div style="font-size:.85rem">Click a student row<br>to view their profile</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="sec" id="s-attendance">
+      <div class="card">
+        <h3>📋 Attendance Records</h3>
+        <div class="fbar">
+          <input type="date" id="f-date" value="{{ today }}">
+          <select id="f-class"><option value="">All Classes</option>
+            {% for c in classes %}<option>{{ c }}</option>{% endfor %}</select>
+          <select id="f-slot"><option value="">All Slots</option>
+            {% for s in slots %}<option>{{ s.label }}</option>{% endfor %}</select>
+          <button class="btn btn-primary btn-sm" onclick="filterAtt()">Filter</button>
+          <button class="btn btn-sm" style="background:var(--glass2);color:var(--text2)" onclick="loadAllAtt()">All</button>
+          <a href="/admin/export" class="btn btn-success btn-sm" style="text-decoration:none">📊 Export</a>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>ID</th><th>Name</th><th>Date</th><th>Slot</th><th>Time</th><th>Status</th></tr></thead>
+          <tbody id="att-tbody">
+            {% for r in today_records %}
+            <tr><td>{{ r.student_id }}</td><td>{{ r.name }}</td><td>{{ r.date }}</td>
+              <td><span class="slot-code">{{ r.slot }}</span></td>
+              <td>{{ r.time }}</td><td><span class="bp">Present</span></td></tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Manual Mark -->
+    <div class="sec" id="s-manual">
+      <div class="card" style="max-width:560px">
+        <h3>✏️ Manual Mark / Remove Attendance</h3>
+        <div class="fg c2" style="margin-top:14px">
+          <div class="f"><label>STUDENT</label>
+            <select id="m-stu"><option value="">— Select —</option>
+              {% for s in students_summary %}<option value="{{ s.student_id }}">{{ s.student_id }} — {{ s.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="f"><label>DATE</label><input type="date" id="m-date" value="{{ today }}"></div>
+          <div class="f"><label>SLOT</label>
+            <select id="m-slot"><option value="">— Select slot —</option>
+              {% for s in slots %}<option value="{{ s.label }}">{{ s.label }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn btn-mark" onclick="manualMark()">✓ Mark Present</button>
+          <button class="btn btn-danger" onclick="removeMark()">✗ Remove Mark</button>
+        </div>
+        <div class="imsg" id="m-msg"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const secs={overview:0,live:1,students:2,attendance:3,manual:4};
+const titles={overview:'Overview',live:'Live Attendance',students:'Students',
+              attendance:'Records',manual:'Manual Mark'};
+function show(name) {
+  Object.keys(secs).forEach(s =>
+    document.getElementById(`s-${s}`)?.classList.toggle('active', s===name));
+  document.querySelectorAll('.nav-item').forEach((el,i) =>
+    el.classList.toggle('active', Object.keys(secs)[i]===name));
+  document.getElementById('sec-title').textContent = titles[name]||name;
+  if (name==='live') startPoll();
+  if (name==='attendance') loadAllAtt();
+}
+
+async function camStart() {
+  const r=await fetch('/camera/start',{method:'POST'});
+  const j=await r.json();
+  toast(j.msg,j.ok); if(j.ok) setBadge(true);
+}
+async function camStop() {
+  const r=await fetch('/camera/stop',{method:'POST'});
+  const j=await r.json();
+  toast(j.msg,j.ok); setBadge(false);
+}
+function setBadge(live) {
+  const b=document.getElementById('cam-badge');
+  if(live){b.textContent='● Live';b.style.cssText='background:#0d2e1ebb;color:var(--success);border:1px solid #1a4f32';}
+  else    {b.textContent='● Offline';b.style.cssText='background:#3d1520bb;color:var(--danger);border:1px solid #7f1d2a';}
+}
+let pt=null;
+function startPoll(){if(pt)return;pt=setInterval(poll,2000);}
+async function poll(){
+  try{
+    const j=await(await fetch('/camera/status')).json();
+    setBadge(j.running);
+    document.getElementById('slot-badge').textContent=j.slot?`Slot: ${j.slot}`:'No active slot';
+    document.getElementById('live-total').textContent=j.today;
+    document.getElementById('ov-today').textContent=j.today;
+    const sa=document.getElementById('spoof-alert');
+    if(j.spoof_alert){sa.textContent=j.spoof_alert;sa.style.display='block';}
+    else sa.style.display='none';
+    renderLog(j.records);
+  }catch(e){}
+}
+function renderLog(recs){
+  document.getElementById('live-log').innerHTML=recs.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:7px 10px;background:var(--glass2);border-radius:8px;border:1px solid var(--border)">
+      <div><div style="font-size:.82rem;font-weight:600">${r.name}</div>
+           <div style="font-size:.7rem;color:var(--text3)">${r.student_id}</div></div>
+      <div style="text-align:right">
+        <span class="slot-code">${r.slot||''}</span>
+        <div style="font-size:.7rem;color:var(--text3)">${r.time}</div>
+      </div>
+    </div>`).join('')||'<div style="color:var(--text3);font-size:.8rem;text-align:center;padding:20px">No marks yet.</div>';
+}
+function searchStu(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('#stu-tbody tr[data-q]').forEach(r=>
+    r.style.display=(!q||r.dataset.q.includes(q))?'':'none');
+}
+
+async function loadProfile(sid) {
+  // Highlight selected row
+  document.querySelectorAll('#stu-tbody tr').forEach(r =>
+    r.style.background = r.id === `str-${sid}` ? 'var(--glass2)' : '');
+
+  // Show panel, hide empty state
+  document.getElementById('profile-panel').style.display = 'block';
+  document.getElementById('profile-empty').style.display = 'none';
+
+  // Fetch student attendance data
+  const res  = await fetch(`/teacher/attendance?date=&class=&slot=`);
+  const all  = await res.json();
+  const recs = all.filter(r => r.student_id === sid);
+
+  // Find student info from table
+  const row   = document.getElementById(`str-${sid}`);
+  const cells = row ? row.querySelectorAll('td') : [];
+  const name   = cells[1]?.textContent || sid;
+  const cls    = cells[2]?.textContent || '';
+  const branch = cells[3]?.textContent || '';
+
+  // Stats
+  const total   = recs.length;
+  const present = recs.filter(r => r.status === 'Present').length;
+  const pct     = total ? Math.round(present / total * 100) : 0;
+
+  // Today's slots
+  const today     = new Date().toISOString().slice(0,10);
+  const todaySlots = new Set(recs.filter(r => r.date === today).map(r => r.slot));
+  const allSlots   = {{ slots | tojson }};
+
+  // Populate panel
+  document.getElementById('pp-avatar').textContent  = name[0].toUpperCase();
+  document.getElementById('pp-name').textContent    = name;
+  document.getElementById('pp-id').textContent      = sid;
+  document.getElementById('pp-class').textContent   = cls || '';
+  document.getElementById('pp-branch').textContent  = branch || '';
+  document.getElementById('pp-total').textContent   = total;
+  document.getElementById('pp-present').textContent = present;
+  document.getElementById('pp-pct').textContent     = pct + '%';
+  document.getElementById('pp-pct-lbl').textContent = pct + '% attendance rate';
+  document.getElementById('pp-bar').style.width     = pct + '%';
+
+  // Colour pct by threshold
+  const pctEl = document.getElementById('pp-pct');
+  pctEl.style.color = pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
+
+  // Slot chips
+  document.getElementById('pp-chips').innerHTML = allSlots.map(s => {
+    const hit = todaySlots.has(s.label);
+    return `<span style="padding:3px 11px;border-radius:99px;font-size:.7rem;font-weight:600;
+      white-space:nowrap;${hit
+        ? 'background:#0d2e1e;color:var(--success);border:1px solid #1a4f32'
+        : 'background:var(--glass2);color:var(--text3);border:1px solid var(--border)'}">
+      ${hit ? '✓ ' : ''}${s.label}</span>`;
+  }).join('');
+
+  // Recent 6 records
+  const recent = recs.slice(0, 6);
+  document.getElementById('pp-records').innerHTML = recent.length
+    ? recent.map(r => `
+        <div style="display:flex;justify-content:space-between;align-items:center;
+          padding:6px 10px;background:var(--glass2);border-radius:8px;
+          border:1px solid var(--border)">
+          <div style="font-size:.78rem;color:var(--text)">${r.date}</div>
+          <span style="font-family:monospace;font-size:.72rem;background:var(--glass);
+            border-radius:4px;padding:1px 6px;color:var(--accent2)">${r.slot||''}</span>
+          <span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:.68rem;
+            font-weight:600;background:#0d2e1e;color:var(--success);border:1px solid #1a4f32">
+            Present</span>
+        </div>`)
+      .join('')
+    : '<div style="color:var(--text3);font-size:.78rem;text-align:center;padding:16px">No records yet.</div>';
+
+  // Full profile link
+  document.getElementById('pp-full-link').href = `/teacher/student/${sid}`;
+}
+async function filterAtt(){
+  const r=await fetch(`/teacher/attendance?date=${document.getElementById('f-date').value}&class=${document.getElementById('f-class').value}&slot=${document.getElementById('f-slot').value}`);
+  renderAtt(await r.json());
+}
+async function loadAllAtt(){
+  renderAtt(await(await fetch('/teacher/attendance')).json());
+}
+function renderAtt(rows){
+  document.getElementById('att-tbody').innerHTML=rows.length
+    ?rows.map(r=>`<tr><td>${r.student_id}</td><td>${r.name}</td><td>${r.date}</td>
+      <td><span class="slot-code">${r.slot||''}</span></td>
+      <td>${r.time}</td><td><span class="bp">Present</span></td></tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No records.</td></tr>';
+}
+async function manualMark(){
+  const sid=document.getElementById('m-stu').value;
+  const date=document.getElementById('m-date').value;
+  const slot=document.getElementById('m-slot').value;
+  if(!sid||!date||!slot){showImsg('m-msg','Please fill all fields.',false);return;}
+  const r=await fetch('/teacher/manual_mark',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({student_id:sid,date,slot})});
+  const j=await r.json();showImsg('m-msg',j.msg,j.ok);
+}
+async function removeMark(){
+  const sid=document.getElementById('m-stu').value;
+  const date=document.getElementById('m-date').value;
+  const slot=document.getElementById('m-slot').value;
+  if(!sid||!date||!slot){showImsg('m-msg','Please fill all fields.',false);return;}
+  const r=await fetch('/teacher/remove_mark',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({student_id:sid,date,slot})});
+  const j=await r.json();showImsg('m-msg',j.msg,j.ok);
+}
+function toast(msg,ok){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className=`toast ${ok?'ok':'err'}`;el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+function showImsg(id,msg,ok){
+  const el=document.getElementById(id);
+  el.textContent=msg;el.className=`imsg ${ok?'ok':'err'}`;el.style.display='block';
+  setTimeout(()=>el.style.display='none',3500);
+}
+</script>
+</body>
+</html>

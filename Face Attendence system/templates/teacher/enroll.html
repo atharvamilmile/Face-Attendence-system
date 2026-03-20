@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FaceTrack — Register Student</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/shared.css">
+<style>
+body{display:block;}
+.page-wrap{max-width:700px;margin:0 auto;padding:32px 20px;}
+.back-btn{display:inline-flex;align-items:center;gap:8px;color:var(--warning);
+  text-decoration:none;font-size:.85rem;font-weight:600;margin-bottom:24px;}
+.back-btn:hover{color:var(--text);}
+.enroll-card{background:var(--glass);border:1px solid var(--border);border-radius:18px;padding:32px 36px;}
+.enroll-card h2{font-size:1.4rem;font-weight:700;margin-bottom:6px;}
+.enroll-card p{font-size:.83rem;color:var(--text2);margin-bottom:24px;}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+.status-box{background:var(--glass2);border:1px solid var(--border);border-radius:12px;
+  padding:18px 20px;margin-top:20px;display:none;}
+.status-box h4{font-size:.88rem;font-weight:600;margin-bottom:10px;}
+.progress-bar-track{background:var(--glass);border-radius:99px;height:10px;overflow:hidden;margin-bottom:10px;}
+.progress-bar-fill{height:100%;border-radius:99px;width:0%;
+  background:linear-gradient(90deg,var(--accent2),var(--success));transition:width .4s ease;}
+.status-msg{font-size:.85rem;} .status-msg.ok{color:var(--success);}
+.status-msg.err{color:var(--danger);} .status-msg.info{color:var(--warning);}
+.pose-steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.pose-step{padding:5px 14px;border-radius:99px;font-size:.75rem;font-weight:600;
+  border:1px solid var(--border);background:var(--glass2);color:var(--text3);}
+.pose-step.done{background:#0d2e1e;color:var(--success);border-color:#1a4f32;}
+.pose-step.active{background:#162240;color:var(--accent);border-color:var(--accent2);
+  animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.hint-row{display:flex;gap:16px;margin-bottom:20px;}
+.hint-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.hint-item span:first-child{font-size:1.4rem;}
+.hint-item span:last-child{font-size:.7rem;color:var(--text2);}
+</style>
+</head>
+<body>
+<div style="background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;">
+  <span style="font-weight:700;font-size:.95rem">➕ Register New Student</span>
+  <span style="background:var(--glass2);border:1px solid var(--border);border-radius:6px;
+    padding:3px 10px;font-size:.75rem;color:var(--warning)">
+    👩‍🏫 {{ teacher_name }}</span>
+</div>
+
+<div class="page-wrap">
+  <a href="{{ '/teacher' if role=='teacher' else '/admin' }}" class="back-btn">← Back to Dashboard</a>
+
+  <div class="enroll-card">
+    <h2>Register New Student</h2>
+    <p>Fill in the student details, then click Capture & Register. The webcam will open on this machine for face enrollment.</p>
+
+    <!-- Hint icons -->
+    <div class="hint-row">
+      <div class="hint-item"><span>➡</span><span>5 poses</span></div>
+      <div class="hint-item"><span>💡</span><span>Good light</span></div>
+      <div class="hint-item"><span>👤</span><span>One face</span></div>
+      <div class="hint-item"><span>📷</span><span>Face camera</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Form -->
+    <div class="fg c2">
+      <div class="f"><label>STUDENT ID *</label><input id="e-id" placeholder="e.g. DMET1322005" autocomplete="off"></div>
+      <div class="f"><label>FULL NAME *</label><input id="e-name" placeholder="Full Name"></div>
+      <div class="f"><label>CLASS</label>
+        <select id="e-cls"><option value="">— Select Class —</option>
+          {% for c in classes %}<option>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="f"><label>BRANCH</label><input id="e-branch" placeholder="e.g. Computer Science"></div>
+      <div class="f" style="grid-column:1/-1">
+        <label>DATE OF BIRTH * <span style="color:var(--text3);font-weight:400">(used as student login password)</span></label>
+        <input type="date" id="e-dob">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="enroll-btn" onclick="startEnroll()" style="margin-top:8px;padding:11px 28px;font-size:.95rem">
+      📸 Capture & Register
+    </button>
+
+    <!-- Status box -->
+    <div class="status-box" id="status-box">
+      <h4>Enrollment Progress</h4>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="prog-fill"></div>
+      </div>
+      <div class="status-msg info" id="status-msg">Waiting…</div>
+      <div class="pose-steps" id="pose-steps">
+        <div class="pose-step" id="pose-0">Straight</div>
+        <div class="pose-step" id="pose-1">Left</div>
+        <div class="pose-step" id="pose-2">Right</div>
+        <div class="pose-step" id="pose-3">Tilt Up</div>
+        <div class="pose-step" id="pose-4">Tilt Down</div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-danger btn-sm" onclick="cancelEnroll()">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let pollTimer = null;
+
+async function startEnroll() {
+  const sid    = document.getElementById('e-id').value.trim().toUpperCase();
+  const name   = document.getElementById('e-name').value.trim();
+  const cls    = document.getElementById('e-cls').value;
+  const branch = document.getElementById('e-branch').value.trim();
+  const dob    = document.getElementById('e-dob').value;
+
+  if (!sid || !name)  { alert('Student ID and Name are required.'); return; }
+  if (!dob)           { alert('Date of Birth is required — it is the student login password.'); return; }
+
+  const r = await fetch('/enroll/start', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({student_id:sid, name, class_name:cls, branch, dob})
+  });
+  const j = await r.json();
+  if (!j.ok) { alert(j.msg); return; }
+
+  document.getElementById('status-box').style.display = 'block';
+  document.getElementById('enroll-btn').disabled = true;
+  pollTimer = setInterval(pollStatus, 800);
+}
+
+async function pollStatus() {
+  const r = await fetch('/enroll/status');
+  const j = await r.json();
+
+  const msgEl = document.getElementById('status-msg');
+  const fill  = document.getElementById('prog-fill');
+
+  msgEl.textContent = j.message;
+
+  if (j.status === 'waiting_blink') {
+    msgEl.className = 'status-msg info';
+    fill.style.width = '10%';
+    markPoses(0);
+  } else if (j.status === 'capturing') {
+    msgEl.className = 'status-msg info';
+    const pct = 10 + (j.progress / 5) * 85;
+    fill.style.width = pct + '%';
+    markPoses(j.progress);
+  } else if (j.status === 'done') {
+    clearInterval(pollTimer);
+    msgEl.className = 'status-msg ok';
+    fill.style.width = '100%';
+    markPoses(5);
+    document.getElementById('enroll-btn').disabled = false;
+    setTimeout(() => {
+      if (confirm(j.message + '\n\nRegister another student?')) {
+        location.reload();
+      } else {
+        history.back();
+      }
+    }, 600);
+  } else if (j.status === 'failed') {
+    clearInterval(pollTimer);
+    msgEl.className = 'status-msg err';
+    document.getElementById('enroll-btn').disabled = false;
+  }
+}
+
+function markPoses(done) {
+  for (let i = 0; i < 5; i++) {
+    const el = document.getElementById(`pose-${i}`);
+    if (i < done)      el.className = 'pose-step done';
+    else if (i === done) el.className = 'pose-step active';
+    else               el.className = 'pose-step';
+  }
+}
+
+async function cancelEnroll() {
+  clearInterval(pollTimer);
+  await fetch('/enroll/cancel', {method:'POST'});
+  document.getElementById('status-box').style.display = 'none';
+  document.getElementById('enroll-btn').disabled = false;
+}
+</script>
+</body>
+</html>

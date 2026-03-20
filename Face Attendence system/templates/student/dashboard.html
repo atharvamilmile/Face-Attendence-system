@@ -1,332 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FaceTrack — My Attendance</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/shared.css">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg:      #080d1a; --surface: #0d1526; --glass:  #111d35;
-    --glass2:  #162240; --border:  #1e3258; --border2:#2a4a7f;
-    --accent:  #00d4ff; --accent2: #0099cc;
-    --success: #00ff9d; --warning: #f0b429; --purple: #7c3aed;
-    --text:    #e8f4f8; --text2:   #8baac4; --text3:  #4a6885;
-  }
-
-  body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
-
-  /* ── Topbar ── */
-  .topbar {
-    background:var(--surface); border-bottom:1px solid var(--border);
-    padding:0 32px; height:60px;
-    display:flex; align-items:center; justify-content:space-between;
-    position:sticky; top:0; z-index:100;
-  }
-  .topbar-brand { display:flex; align-items:center; gap:10px; }
-  .topbar-brand .icon { font-size:1.4rem; }
-  .topbar-brand span { font-weight:700; font-size:1.1rem; color:var(--accent); }
-  .topbar-right { display:flex; align-items:center; gap:16px; }
-  .user-badge {
-    background:var(--glass2); border:1px solid var(--border);
-    border-radius:8px; padding:6px 14px; font-size:0.85rem; color:var(--text2);
-  }
-  .user-badge strong { color:var(--text); }
-  .logout-btn {
-    background:#3d1520; color:#ff4d6d; border:1px solid #ff4d6d;
-    border-radius:8px; padding:6px 16px; font-size:0.85rem;
-    font-family:'Sora',sans-serif; cursor:pointer; text-decoration:none;
-    transition:background .2s,color .2s;
-  }
-  .logout-btn:hover { background:#ff4d6d; color:#fff; }
-
-  /* ── Layout ── */
-  .container { max-width:1100px; margin:0 auto; padding:32px 24px; }
-
-  /* ── Profile ── */
-  .profile-card {
-    background:var(--glass); border:1px solid var(--border); border-radius:16px;
-    padding:28px 32px; display:flex; align-items:center; gap:28px;
-    margin-bottom:28px; animation:fadeIn .4s ease;
-  }
-  .avatar {
-    width:72px; height:72px; border-radius:50%;
-    background:linear-gradient(135deg,var(--accent2),var(--purple));
-    display:flex; align-items:center; justify-content:center;
-    font-size:2rem; flex-shrink:0; border:3px solid var(--border2);
-    font-weight:700; color:#fff;
-  }
-  .profile-info h2 { font-size:1.4rem; font-weight:700; }
-  .profile-info p  { font-size:0.85rem; color:var(--text2); margin-top:4px; }
-  .profile-tags { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-  .tag {
-    background:var(--glass2); border:1px solid var(--border);
-    border-radius:6px; padding:3px 12px; font-size:0.78rem; color:var(--text2);
-  }
-  .tag.accent { color:var(--accent); border-color:var(--accent2); }
-
-  /* ── Stats grid ── */
-  .stats-grid {
-    display:grid; grid-template-columns:repeat(3,1fr);
-    gap:16px; margin-bottom:28px; animation:fadeIn .5s ease;
-  }
-  .stat-card {
-    background:var(--glass2); border:1px solid var(--border);
-    border-radius:14px; padding:20px 24px; text-align:center;
-  }
-  .stat-card .number { font-size:2.4rem; font-weight:700; line-height:1; }
-  .stat-card .label  { font-size:0.78rem; color:var(--text2); margin-top:6px; }
-  .stat-card.cyan   .number { color:var(--accent); }
-  .stat-card.green  .number { color:var(--success); }
-  .stat-card.purple .number { color:#a78bfa; }
-
-  /* ── Progress bar ── */
-  .pct-bar-wrap {
-    background:var(--glass2); border:1px solid var(--border);
-    border-radius:14px; padding:20px 28px; margin-bottom:28px;
-    animation:fadeIn .55s ease;
-  }
-  .pct-bar-wrap h3 { font-size:0.9rem; color:var(--text2); margin-bottom:12px; }
-  .pct-bar-track { background:var(--glass); border-radius:99px; height:14px; overflow:hidden; }
-  .pct-bar-fill {
-    height:100%; border-radius:99px;
-    background:linear-gradient(90deg,var(--accent2),var(--success));
-    transition:width 1s cubic-bezier(.4,0,.2,1);
-  }
-  .pct-label { font-size:1.1rem; font-weight:700; color:var(--success); margin-top:8px; }
-
-  /* ── Slots today quick-view ── */
-  .slots-row {
-    display:flex; gap:10px; flex-wrap:wrap;
-    margin-bottom:28px; animation:fadeIn .58s ease;
-  }
-  .slot-chip {
-    padding:6px 16px; border-radius:99px; font-size:0.78rem; font-weight:600;
-    border:1px solid var(--border); background:var(--glass2); color:var(--text3);
-    white-space:nowrap;
-  }
-  .slot-chip.marked { background:#0d2e1e; color:var(--success); border-color:#1a4f32; }
-
-  /* ── Table ── */
-  .table-section {
-    background:var(--glass); border:1px solid var(--border);
-    border-radius:16px; overflow:hidden; animation:fadeIn .6s ease;
-  }
-  .table-header {
-    padding:18px 24px; display:flex; align-items:center;
-    justify-content:space-between; border-bottom:1px solid var(--border);
-    flex-wrap:wrap; gap:12px;
-  }
-  .table-header h2 { font-size:1rem; font-weight:600; }
-  .filter-group { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .filter-group select {
-    background:var(--glass2); border:1px solid var(--border);
-    border-radius:8px; padding:7px 12px; color:var(--text);
-    font-family:'Sora',sans-serif; font-size:0.85rem; outline:none; cursor:pointer;
-    transition:border-color .2s;
-  }
-  .filter-group select:focus { border-color:var(--accent); }
-  .filter-btn {
-    background:var(--accent2); color:#fff; border:none; border-radius:8px;
-    padding:7px 18px; font-family:'Sora',sans-serif; font-size:0.85rem;
-    cursor:pointer; transition:background .2s;
-  }
-  .filter-btn:hover { background:var(--accent); }
-  .filter-btn.secondary { background:var(--glass2); color:var(--text2); }
-  .filter-btn.secondary:hover { background:var(--border2); color:var(--text); }
-
-  table { width:100%; border-collapse:collapse; }
-  thead th {
-    padding:12px 20px; text-align:left;
-    font-size:0.78rem; font-weight:600; letter-spacing:.06em;
-    color:var(--accent); background:var(--glass2);
-    border-bottom:1px solid var(--border);
-  }
-  tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
-  tbody tr:last-child { border-bottom:none; }
-  tbody tr:hover { background:var(--glass2); }
-  tbody tr.alt   { background:#0f1e38; }
-  tbody td { padding:13px 20px; font-size:0.88rem; }
-
-  .badge-present {
-    display:inline-block; padding:3px 12px; border-radius:99px;
-    font-size:0.75rem; font-weight:600;
-    background:#0d2e1e; color:var(--success); border:1px solid #1a4f32;
-  }
-
-  .slot-label {
-    font-family:monospace; font-size:0.82rem;
-    background:var(--glass2); border-radius:4px;
-    padding:2px 8px; color:var(--accent2);
-  }
-
-  .empty-state { text-align:center; padding:60px 20px; color:var(--text3); }
-  .empty-state .big { font-size:2.5rem; display:block; margin-bottom:12px; }
-
-  @keyframes fadeIn {
-    from { opacity:0; transform:translateY(12px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-
-  @media(max-width:700px) {
-    .stats-grid { grid-template-columns:repeat(2,1fr); }
-    .profile-card { flex-direction:column; text-align:center; }
-    .profile-tags { justify-content:center; }
-  }
+body{display:block;}
+.topbar3{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:56px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .ico{font-size:1.4rem;}
+.brand span{font-weight:700;font-size:1rem;color:var(--success);}
+.container{max-width:980px;margin:0 auto;padding:28px 20px;}
+.profile-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;
+  padding:24px 28px;display:flex;align-items:center;gap:22px;margin-bottom:22px;}
+.avatar{width:68px;height:68px;border-radius:50%;
+  background:linear-gradient(135deg,#065f46,var(--success));
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;font-weight:700;color:#fff;flex-shrink:0;border:3px solid var(--border2);}
+.pi h2{font-size:1.2rem;font-weight:700;}
+.pi p{font-size:.8rem;color:var(--text2);margin-top:3px;}
+.tags{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;}
+.tag{background:var(--glass2);border:1px solid var(--border);border-radius:6px;
+  padding:3px 11px;font-size:.73rem;color:var(--text2);}
+.tag.a{color:var(--success);border-color:#065f46;}
+.table-sec{background:var(--glass);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.th{padding:15px 20px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.th h2{font-size:.9rem;font-weight:600;color:var(--success);}
+@media(max-width:640px){.stats.cols3{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
-
-<!-- Topbar -->
-<div class="topbar">
-  <div class="topbar-brand">
-    <span class="icon">🎓</span>
-    <span>FaceTrack</span>
-  </div>
-  <div class="topbar-right">
-    <div class="user-badge">Logged in as <strong>{{ student.student_id }}</strong></div>
-    <a href="/logout" class="logout-btn">Sign Out</a>
+<div class="topbar3">
+  <div class="brand"><span class="ico">🎓</span><span>FaceTrack</span></div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span style="background:var(--glass2);border:1px solid var(--border);border-radius:6px;
+      padding:3px 10px;font-size:.75rem;color:var(--text2)">
+      Logged in as <strong style="color:var(--text)">{{ student.student_id }}</strong></span>
+    <a href="/logout" style="background:#3d1520;color:var(--danger);border:1px solid var(--danger);
+      border-radius:8px;padding:5px 14px;font-size:.8rem;font-family:'Sora',sans-serif;
+      text-decoration:none;transition:all .2s"
+      onmouseover="this.style.background='var(--danger)';this.style.color='#fff'"
+      onmouseout="this.style.background='#3d1520';this.style.color='var(--danger)'">Sign Out</a>
   </div>
 </div>
 
 <div class="container">
-
-  <!-- Profile card -->
   <div class="profile-card">
-    <div class="avatar">{{ student.name[0] | upper }}</div>
-    <div class="profile-info">
+    <div class="avatar">{{ student.name[0]|upper }}</div>
+    <div class="pi">
       <h2>{{ student.name }}</h2>
       <p>Student ID: {{ student.student_id }}</p>
-      <div class="profile-tags">
-        {% if student.class_name %}<span class="tag accent">{{ student.class_name }}</span>{% endif %}
+      <div class="tags">
+        {% if student.class_name %}<span class="tag a">{{ student.class_name }}</span>{% endif %}
         {% if student.branch %}<span class="tag">{{ student.branch }}</span>{% endif %}
         <span class="tag">Joined {{ student.registered_at[:10] if student.registered_at else '—' }}</span>
       </div>
     </div>
   </div>
 
-  <!-- Stat cards — no Late card -->
-  <div class="stats-grid">
-    <div class="stat-card cyan">
-      <div class="number">{{ summary.total }}</div>
-      <div class="label">Total Slots Attended</div>
-    </div>
-    <div class="stat-card green">
-      <div class="number">{{ summary.present }}</div>
-      <div class="label">Present</div>
-    </div>
-    <div class="stat-card purple">
-      <div class="number">{{ summary.percentage }}%</div>
-      <div class="label">Attendance Rate</div>
-    </div>
+  <div class="stats cols3" style="margin-bottom:22px">
+    <div class="sc c-cyan"><div class="num">{{ summary.total }}</div><div class="lbl">Total Slots Attended</div></div>
+    <div class="sc c-green"><div class="num">{{ summary.present }}</div><div class="lbl">Present</div></div>
+    <div class="sc c-purple"><div class="num">{{ summary.percentage }}%</div><div class="lbl">Attendance Rate</div></div>
   </div>
 
-  <!-- Progress bar -->
-  <div class="pct-bar-wrap">
+  <div class="pbar-wrap">
     <h3>Overall Attendance Progress</h3>
-    <div class="pct-bar-track">
-      <div class="pct-bar-fill" id="pct-bar" style="width:0%"></div>
-    </div>
-    <div class="pct-label">{{ summary.percentage }}% attended</div>
+    <div class="pbar-track"><div class="pbar-fill" id="pb" style="width:0%"></div></div>
+    <div class="pbar-lbl">{{ summary.percentage }}% attended</div>
   </div>
 
-  <!-- Today's slots quick view -->
-  {% if today_slots %}
-  <div style="margin-bottom:10px;">
-    <span style="font-size:0.82rem;color:var(--text2);">Today's Slots:</span>
-  </div>
-  <div class="slots-row">
+  {% if all_slots %}
+  <p style="font-size:.78rem;color:var(--text2);margin-bottom:8px">Today's Slots:</p>
+  <div class="chips" style="margin-bottom:22px">
     {% for slot in all_slots %}
-    <div class="slot-chip {{ 'marked' if slot in today_slots else '' }}">
+    <div class="chip {{ 'hit' if slot in today_slots else '' }}">
       {{ '✓ ' if slot in today_slots else '' }}{{ slot }}
     </div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <!-- Attendance table -->
-  <div class="table-section">
-    <div class="table-header">
-      <h2>📅 Attendance Records</h2>
-      <div class="filter-group">
-        <select id="month-filter">
+  <div class="table-sec">
+    <div class="th">
+      <h2>📅 My Attendance Records</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="f-month" style="padding:6px 10px;background:var(--glass2);border:1px solid var(--border);
+          border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;outline:none">
           <option value="">All Months</option>
-          {% for m in months %}
-          <option value="{{ m }}">{{ m }}</option>
-          {% endfor %}
+          {% for m in months %}<option>{{ m }}</option>{% endfor %}
         </select>
-        <select id="slot-filter">
+        <select id="f-slot" style="padding:6px 10px;background:var(--glass2);border:1px solid var(--border);
+          border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;outline:none">
           <option value="">All Slots</option>
-          {% for s in all_slots %}
-          <option value="{{ s }}">{{ s }}</option>
-          {% endfor %}
+          {% for s in all_slots %}<option>{{ s }}</option>{% endfor %}
         </select>
-        <button class="filter-btn" onclick="applyFilters()">Filter</button>
-        <button class="filter-btn secondary" onclick="resetFilters()">Reset</button>
+        <button onclick="applyFilters()" style="padding:6px 14px;background:#065f46;color:var(--success);
+          border:none;border-radius:8px;font-family:'Sora',sans-serif;font-size:.78rem;cursor:pointer">Filter</button>
+        <button onclick="resetFilters()" style="padding:6px 14px;background:var(--glass2);color:var(--text2);
+          border:none;border-radius:8px;font-family:'Sora',sans-serif;font-size:.78rem;cursor:pointer">Reset</button>
       </div>
     </div>
-
-    <table id="att-table">
-      <thead>
-        <tr>
-          <th>DATE</th>
-          <th>SLOT</th>
-          <th>TIME</th>
-          <th>STATUS</th>
-        </tr>
-      </thead>
-      <tbody id="att-body">
-        {% for rec in records %}
-        <tr class="{{ 'alt' if loop.index % 2 == 0 else '' }}"
-            data-month="{{ rec.date[:7] }}"
-            data-slot="{{ rec.slot if rec.slot else rec.get('session','') }}">
-          <td>{{ rec.date }}</td>
-          <td><span class="slot-label">{{ rec.slot if rec.slot else rec.get('session','—') }}</span></td>
-          <td>{{ rec.time }}</td>
-          <td><span class="badge-present">Present</span></td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4">
-            <div class="empty-state">
-              <span class="big">📭</span>
-              No attendance records yet.
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="color:var(--success)">DATE</th>
+          <th style="color:var(--success)">SLOT</th>
+          <th style="color:var(--success)">TIME</th>
+          <th style="color:var(--success)">STATUS</th>
+        </tr></thead>
+        <tbody id="att-body">
+          {% for rec in records %}
+          <tr data-month="{{ rec.date[:7] }}" data-slot="{{ rec.slot or '' }}">
+            <td>{{ rec.date }}</td>
+            <td><span class="slot-code">{{ rec.slot or '—' }}</span></td>
+            <td>{{ rec.time }}</td>
+            <td><span class="bp">Present</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:48px">No attendance records yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-
-</div><!-- /container -->
+</div>
 
 <script>
-  // Animate progress bar
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      document.getElementById('pct-bar').style.width = '{{ summary.percentage }}%';
-    }, 200);
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('pb').style.width='{{ summary.percentage }}%',200));
+function applyFilters(){
+  const m=document.getElementById('f-month').value;
+  const s=document.getElementById('f-slot').value;
+  document.querySelectorAll('#att-body tr[data-month]').forEach(r=>{
+    r.style.display=(!m||r.dataset.month===m)&&(!s||r.dataset.slot===s)?'':'none';
   });
-
-  function applyFilters() {
-    const month = document.getElementById('month-filter').value;
-    const slot  = document.getElementById('slot-filter').value;
-    document.querySelectorAll('#att-body tr[data-month]').forEach(row => {
-      const mOk = !month || row.dataset.month === month;
-      const sOk = !slot  || row.dataset.slot  === slot;
-      row.style.display = (mOk && sOk) ? '' : 'none';
-    });
-  }
-
-  function resetFilters() {
-    document.getElementById('month-filter').value = '';
-    document.getElementById('slot-filter').value  = '';
-    document.querySelectorAll('#att-body tr[data-month]')
-      .forEach(r => r.style.display = '');
-  }
+}
+function resetFilters(){
+  document.getElementById('f-month').value='';
+  document.getElementById('f-slot').value='';
+  document.querySelectorAll('#att-body tr[data-month]').forEach(r=>r.style.display='');
+}
 </script>
 </body>
 </html>

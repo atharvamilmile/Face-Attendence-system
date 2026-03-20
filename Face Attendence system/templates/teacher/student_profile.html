@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FaceTrack — {{ student.name }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/shared.css">
+<style>
+body{display:block;}
+.topbar2{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:54px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:50;}
+.back{color:var(--warning);text-decoration:none;font-size:.85rem;font-weight:600;}
+.back:hover{color:var(--text);}
+.container{max-width:1000px;margin:0 auto;padding:28px 20px;}
+.profile-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;
+  padding:26px 30px;display:flex;align-items:center;gap:24px;margin-bottom:22px;}
+.avatar{width:70px;height:70px;border-radius:50%;
+  background:linear-gradient(135deg,#065f46,var(--success));
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;font-weight:700;color:#fff;flex-shrink:0;border:3px solid var(--border2);}
+.pi h2{font-size:1.25rem;font-weight:700;}
+.pi p{font-size:.8rem;color:var(--text2);margin-top:3px;}
+.tags{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.tag{background:var(--glass2);border:1px solid var(--border);border-radius:6px;
+  padding:3px 11px;font-size:.73rem;color:var(--text2);}
+.tag.a{color:var(--success);border-color:#065f46;}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;}
+.ch{padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.ch h3{font-size:.88rem;font-weight:600;color:var(--warning);}
+</style>
+</head>
+<body>
+<div class="topbar2">
+  <a href="{{ back_url }}" class="back">← Back</a>
+  <span style="background:var(--glass2);border:1px solid var(--border);border-radius:6px;
+    padding:3px 10px;font-size:.75rem;color:var(--warning)">👩‍🏫 {{ teacher_name }}</span>
+</div>
+
+<div class="container">
+  <div class="profile-card">
+    <div class="avatar">{{ student.name[0]|upper }}</div>
+    <div class="pi">
+      <h2>{{ student.name }}</h2>
+      <p>Student ID: {{ student.student_id }}</p>
+      <div class="tags">
+        {% if student.class_name %}<span class="tag a">{{ student.class_name }}</span>{% endif %}
+        {% if student.branch %}<span class="tag">{{ student.branch }}</span>{% endif %}
+        <span class="tag">DOB: {{ student.dob or '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats cols3">
+    <div class="sc c-cyan"><div class="num">{{ summary.total }}</div><div class="lbl">Total Slots</div></div>
+    <div class="sc c-green"><div class="num">{{ summary.present }}</div><div class="lbl">Present</div></div>
+    <div class="sc c-purple"><div class="num">{{ summary.percentage }}%</div><div class="lbl">Attendance Rate</div></div>
+  </div>
+
+  <div class="pbar-wrap">
+    <h3>Attendance Progress</h3>
+    <div class="pbar-track"><div class="pbar-fill" id="pb" style="width:0%"></div></div>
+    <div class="pbar-lbl">{{ summary.percentage }}%</div>
+  </div>
+
+  {% if slots %}
+  <div class="chips">
+    {% for s in slots %}
+    <div class="chip {{ 'hit' if s.label in today_slots else '' }}">
+      {{ '✓ ' if s.label in today_slots else '' }}{{ s.label }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="ch">
+      <h3>📅 Attendance Records</h3>
+      <div style="display:flex;gap:8px">
+        <select id="f-month" onchange="filterRows()" style="padding:5px 8px;background:var(--glass2);
+          border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;outline:none">
+          <option value="">All Months</option>
+          {% for m in months %}<option>{{ m }}</option>{% endfor %}
+        </select>
+        <select id="f-slot" onchange="filterRows()" style="padding:5px 8px;background:var(--glass2);
+          border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;outline:none">
+          <option value="">All Slots</option>
+          {% for s in slots %}<option value="{{ s.label }}">{{ s.label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th style="color:var(--warning)">DATE</th><th style="color:var(--warning)">SLOT</th><th style="color:var(--warning)">TIME</th><th style="color:var(--warning)">STATUS</th><th style="color:var(--warning)">MARKED BY</th></tr></thead>
+      <tbody id="rec-body">
+        {% for rec in records %}
+        <tr data-month="{{ rec.date[:7] }}" data-slot="{{ rec.slot or '' }}">
+          <td>{{ rec.date }}</td>
+          <td><span class="slot-code">{{ rec.slot or '—' }}</span></td>
+          <td>{{ rec.time }}</td>
+          <td><span class="bp">Present</span></td>
+          <td style="color:var(--text3);font-size:.75rem">{{ rec.marked_by or 'auto' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">No records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('pb').style.width='{{ summary.percentage }}%',200));
+function filterRows(){
+  const m=document.getElementById('f-month').value;
+  const s=document.getElementById('f-slot').value;
+  document.querySelectorAll('#rec-body tr[data-month]').forEach(r=>{
+    r.style.display=(!m||r.dataset.month===m)&&(!s||r.dataset.slot===s)?'':'none';
+  });
+}
+</script>
+</body>
+</html>

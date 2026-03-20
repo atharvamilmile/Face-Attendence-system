@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FaceTrack — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080d1a;--glass:#111d35;--glass2:#162240;--border:#1e3258;
+  --accent:#00d4ff;--accent2:#0099cc;--danger:#ff4d6d;--success:#00ff9d;
+  --warning:#f0b429;--purple:#7c3aed;--text:#e8f4f8;--text2:#8baac4;--text3:#4a6885;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(var(--glass) 1px,transparent 1px),
+  linear-gradient(90deg,var(--glass) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.3;z-index:0;}
+.glow{position:fixed;width:700px;height:700px;border-radius:50%;top:-200px;left:50%;
+  transform:translateX(-50%);z-index:0;pointer-events:none;
+  background:radial-gradient(circle,#00d4ff12 0%,transparent 70%);
+  animation:pulse 5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.5;transform:translateX(-50%) scale(1)}
+  50%{opacity:1;transform:translateX(-50%) scale(1.1)}}
+.card{position:relative;z-index:1;background:var(--glass);border:1px solid var(--border);
+  border-radius:24px;padding:44px 48px;width:460px;
+  box-shadow:0 32px 80px #00000050;animation:up .5s ease;}
+@keyframes up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.logo{text-align:center;margin-bottom:28px;}
+.logo .icon{font-size:3rem;display:block;margin-bottom:6px;}
+.logo h1{font-size:1.65rem;font-weight:700;}
+.logo p{font-size:.8rem;color:var(--text2);margin-top:4px;}
+.tabs{display:flex;gap:0;background:var(--glass2);border-radius:12px;padding:4px;
+  border:1px solid var(--border);margin-bottom:24px;}
+.tab{flex:1;padding:9px 4px;text-align:center;font-size:.8rem;font-weight:600;
+  color:var(--text3);cursor:pointer;border-radius:9px;border:none;background:none;
+  font-family:'Sora',sans-serif;transition:all .2s;}
+.tab:hover{color:var(--text2);}
+.tab.active{background:var(--glass);box-shadow:0 2px 8px #00000030;}
+.tab.active.t-admin{color:var(--accent);}
+.tab.active.t-teacher{color:var(--warning);}
+.tab.active.t-student{color:var(--success);}
+.divider{height:1px;background:var(--border);margin-bottom:20px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.7rem;font-weight:600;letter-spacing:.08em;
+  color:var(--text2);margin-bottom:5px;}
+.field input{width:100%;padding:11px 14px;background:var(--glass2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:'Sora',sans-serif;font-size:.92rem;outline:none;
+  transition:border-color .2s,box-shadow .2s;}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #00d4ff16;}
+.hint{font-size:.7rem;color:var(--text3);margin-top:4px;}
+.error{background:#3d1520;border:1px solid var(--danger);border-radius:10px;
+  padding:10px 14px;color:var(--danger);font-size:.83rem;margin-bottom:16px;}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;color:#fff;
+  font-family:'Sora',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;
+  transition:filter .2s,transform .1s;}
+.btn:active{transform:scale(.98);}
+.btn-admin  {background:linear-gradient(135deg,var(--accent2),var(--accent));}
+.btn-teacher{background:linear-gradient(135deg,#92400e,var(--warning));}
+.btn-student{background:linear-gradient(135deg,#065f46,var(--success));}
+.btn:hover{filter:brightness(1.1);}
+form{display:none;} form.active{display:block;}
+.footer{text-align:center;margin-top:16px;font-size:.73rem;color:var(--text3);}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="card">
+  <div class="logo">
+    <span class="icon">🎓</span>
+    <h1>FaceTrack</h1>
+    <p>Attendance Management System</p>
+  </div>
+  <div class="tabs">
+    <button class="tab t-admin active"   onclick="switchTab('admin')">🔐 Admin</button>
+    <button class="tab t-teacher"        onclick="switchTab('teacher')">👩‍🏫 Teacher</button>
+    <button class="tab t-student"        onclick="switchTab('student')">🎓 Student</button>
+  </div>
+  <div class="divider"></div>
+  {% if error %}<div class="error">⚠ {{ error }}</div>{% endif %}
+
+  <form method="POST" class="active" id="f-admin">
+    <input type="hidden" name="role" value="admin">
+    <div class="field"><label>USERNAME</label>
+      <input type="text" name="identity" placeholder="admin" autocomplete="off" required></div>
+    <div class="field"><label>PASSWORD</label>
+      <input type="password" name="password" placeholder="••••••••" required></div>
+    <button type="submit" class="btn btn-admin">Sign In as Admin →</button>
+  </form>
+
+  <form method="POST" id="f-teacher">
+    <input type="hidden" name="role" value="teacher">
+    <div class="field"><label>EMAIL ADDRESS</label>
+      <input type="email" name="identity" placeholder="teacher@school.edu"></div>
+    <div class="field"><label>PASSWORD</label>
+      <input type="password" name="password" placeholder="••••••••"></div>
+    <button type="submit" class="btn btn-teacher">Sign In as Teacher →</button>
+  </form>
+
+  <form method="POST" id="f-student">
+    <input type="hidden" name="role" value="student">
+    <div class="field"><label>STUDENT ID</label>
+      <input type="text" name="identity" placeholder="e.g. DMET1322004" autocomplete="off"></div>
+    <div class="field"><label>DATE OF BIRTH</label>
+      <input type="date" name="dob">
+      <div class="hint">Your date of birth is your password.</div></div>
+    <button type="submit" class="btn btn-student">Sign In as Student →</button>
+  </form>
+
+  <p class="footer">Contact your admin if you cannot log in.</p>
+</div>
+<script>
+function switchTab(role) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.t-${role}`).classList.add('active');
+  ['admin','teacher','student'].forEach(r => {
+    document.getElementById(`f-${r}`).className = r===role ? 'active' : '';
+  });
+  sessionStorage.setItem('lastRole', role);
+}
+// Restore last tab
+const last = sessionStorage.getItem('lastRole');
+if (last) switchTab(last);
+document.querySelectorAll('form').forEach(f =>
+  f.addEventListener('submit', () =>
+    sessionStorage.setItem('lastRole', f.querySelector('[name=role]').value)));
+</script>
+</body>
+</html>
