@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceTrack — Student Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #080d1a;
+    --surface: #0d1526;
+    --glass:   #111d35;
+    --glass2:  #162240;
+    --border:  #1e3258;
+    --accent:  #00d4ff;
+    --accent2: #0099cc;
+    --danger:  #ff4d6d;
+    --success: #00ff9d;
+    --text:    #e8f4f8;
+    --text2:   #8baac4;
+    --text3:   #4a6885;
+  }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--glass) 1px, transparent 1px),
+      linear-gradient(90deg, var(--glass) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.4;
+    z-index: 0;
+  }
+
+  .glow {
+    position: fixed;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #00d4ff18 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    top: -100px; left: 50%;
+    transform: translateX(-50%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.6; }
+    50%       { transform: translateX(-50%) scale(1.15); opacity: 1; }
+  }
+
+  .card {
+    position: relative; z-index: 1;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 52px;
+    width: 420px;
+    box-shadow: 0 24px 80px #00d4ff0d, 0 0 0 1px #1e325844;
+    animation: slideUp 0.5s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo .icon { font-size: 3rem; display: block; margin-bottom: 8px; }
+
+  .logo h1 {
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--text);
+  }
+
+  .logo p { font-size: 0.82rem; color: var(--text2); margin-top: 4px; }
+
+  .divider {
+    height: 1px; background: var(--border); margin: 0 0 28px;
+  }
+
+  .field { margin-bottom: 20px; }
+
+  .field label {
+    display: block;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--text2); margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%; padding: 12px 14px;
+    background: var(--glass2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text); font-family: 'Sora', sans-serif; font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #00d4ff1a;
+  }
+
+  .hint {
+    font-size: 0.74rem; color: var(--text3); margin-top: 5px;
+  }
+
+  .error-box {
+    background: #3d1520; border: 1px solid var(--danger);
+    border-radius: 10px; padding: 10px 14px;
+    color: var(--danger); font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    display: block; width: 100%;
+    padding: 13px;
+    background: var(--accent2);
+    border: none; border-radius: 10px;
+    color: #fff; font-family: 'Sora', sans-serif;
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: background 0.2s, transform 0.1s;
+  }
+
+  .btn:hover { background: var(--accent); }
+  .btn:active { transform: scale(0.98); }
+
+  .footer-note {
+    text-align: center; margin-top: 20px;
+    font-size: 0.76rem; color: var(--text3);
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<div class="card">
+  <div class="logo">
+    <span class="icon">🎓</span>
+    <h1>FaceTrack</h1>
+    <p>Student Attendance Portal</p>
+  </div>
+  <div class="divider"></div>
+
+  {% if error %}
+  <div class="error-box">⚠ {{ error }}</div>
+  {% endif %}
+
+  <form method="POST">
+    <div class="field">
+      <label>STUDENT ID</label>
+      <input type="text" name="student_id" placeholder="e.g. DMET1322004"
+             autocomplete="off" required autofocus>
+    </div>
+    <div class="field">
+      <label>DATE OF BIRTH</label>
+      <input type="date" name="dob" required>
+      <div class="hint">Your date of birth is your password.</div>
+    </div>
+    <button type="submit" class="btn">Sign In →</button>
+  </form>
+
+  <p class="footer-note">Contact your admin if you cannot log in.</p>
+</div>
+</body>
+</html>

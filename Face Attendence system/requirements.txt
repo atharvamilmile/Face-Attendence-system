@@ -1,0 +1,22 @@
+# ──────────────────────────────────────────────────────────────
+# Face Recognition Attendance System - Requirements
+# Install all with:  pip install -r requirements.txt
+# ──────────────────────────────────────────────────────────────
+
+# Core face detection & recognition
+face_recognition==1.3.0      # High-level face API built on dlib
+dlib>=19.22.0                 # C++ ML toolkit (face_recognition dependency)
+
+# Computer vision
+opencv-python>=4.8.0          # Webcam capture, frame processing, drawing
+
+# Image handling (for Tkinter display)
+Pillow>=10.0.0                # PIL: convert CV2 frames → Tkinter PhotoImage
+
+# Numerical computing
+numpy>=1.24.0                 # Array ops (face encodings are numpy arrays)
+
+# Excel export (optional but included)
+openpyxl>=3.1.0      
+
+Flask         # Read/write .xlsx files
