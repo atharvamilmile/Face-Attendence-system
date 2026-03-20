@@ -88,8 +88,12 @@ def _camera_worker():
     - Outside active slot: only encode/stream frames, NO face recognition
     - Inside active slot: run recognition every 3rd frame, cache results
     - Encoding cache rebuilt only when student list changes
+    - Cache rebuilt inside thread so route response is instant
     """
     global camera_running, latest_frame, known_students, attendance_stats, spoof_alert
+
+    # Build encoding cache inside thread — doesn't block the HTTP response
+    face_utils._rebuild_cache(known_students)
 
     cam_idx = int(database.get_setting("camera_index", "0"))
     cap = cv2.VideoCapture(cam_idx)
@@ -487,15 +491,16 @@ def teacher_attendance_api():
 def teacher_student_profile(sid):
     student = database.get_student_by_id(sid)
     if not student: return "Student not found", 404
-    records     = database.get_student_attendance(sid)
-    summary     = database.get_student_summary(sid)
-    slots       = database.get_slots()
-    today       = date.today().strftime("%Y-%m-%d")
-    today_slots = {r.get("slot","") for r in records if r["date"] == today}
-    months      = sorted({r["date"][:7] for r in records}, reverse=True)
+    summary       = database.get_student_summary(sid)
+    daily_records = database.get_student_daily_attendance(sid)
+    slots         = database.get_slots()
+    today         = date.today().strftime("%Y-%m-%d")
     return render_template("teacher/student_profile.html",
-        student      = student, records=records, summary=summary,
-        slots        = slots,   today_slots=today_slots, months=months,
+        student      = student,
+        summary      = summary,
+        daily_records= daily_records,
+        slots        = slots,
+        today        = today,
         teacher_name = session.get("name",""),
         back_url     = url_for("teacher_dashboard") if session.get("role")=="teacher"
                        else url_for("admin_dashboard"))
@@ -588,17 +593,13 @@ def student_dashboard():
     student = database.get_student_by_id(sid)
     if not student:
         session.clear(); return redirect(url_for("login"))
-    records     = database.get_student_attendance(sid)
-    summary     = database.get_student_summary(sid)
-    all_slots   = [s["label"] for s in database.get_slots()]
-    today       = date.today().strftime("%Y-%m-%d")
-    today_slots = {r.get("slot","") for r in records if r["date"] == today}
-    months      = sorted({r["date"][:7] for r in records}, reverse=True)
+    summary        = database.get_student_summary(sid)
+    daily_records  = database.get_student_daily_attendance(sid)
     return render_template("student/dashboard.html",
-        student=student, records=records, summary=summary,
-        all_slots=all_slots, today_slots=today_slots, months=months)
+        student=student, summary=summary, daily_records=daily_records)
 
 
 if __name__ == "__main__":
     database.initialize_database()
+    att.start_slot_watcher()   # auto-absent at slot end
     app.run(debug=False, port=5000, threaded=True)

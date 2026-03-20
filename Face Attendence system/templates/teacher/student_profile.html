@@ -12,23 +12,84 @@ body{display:block;}
   justify-content:space-between;position:sticky;top:0;z-index:50;}
 .back{color:var(--warning);text-decoration:none;font-size:.85rem;font-weight:600;}
 .back:hover{color:var(--text);}
-.container{max-width:1000px;margin:0 auto;padding:28px 20px;}
+.container{max-width:1000px;margin:0 auto;padding:26px 20px;}
 .profile-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;
-  padding:26px 30px;display:flex;align-items:center;gap:24px;margin-bottom:22px;}
-.avatar{width:70px;height:70px;border-radius:50%;
+  padding:22px 28px;display:flex;align-items:center;gap:20px;margin-bottom:20px;}
+.avatar{width:66px;height:66px;border-radius:50%;
   background:linear-gradient(135deg,#065f46,var(--success));
   display:flex;align-items:center;justify-content:center;
-  font-size:1.8rem;font-weight:700;color:#fff;flex-shrink:0;border:3px solid var(--border2);}
-.pi h2{font-size:1.25rem;font-weight:700;}
-.pi p{font-size:.8rem;color:var(--text2);margin-top:3px;}
-.tags{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  font-size:1.7rem;font-weight:700;color:#fff;flex-shrink:0;border:3px solid var(--border2);}
+.pi h2{font-size:1.2rem;font-weight:700;}
+.pi p{font-size:.78rem;color:var(--text2);margin-top:3px;}
+.tags{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
 .tag{background:var(--glass2);border:1px solid var(--border);border-radius:6px;
-  padding:3px 11px;font-size:.73rem;color:var(--text2);}
-.tag.a{color:var(--success);border-color:#065f46;}
-.card{background:var(--glass);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;}
-.ch{padding:14px 20px;border-bottom:1px solid var(--border);
+  padding:3px 10px;font-size:.72rem;color:var(--text2);}
+.tag.a{color:var(--warning);border-color:#92400e;}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.sc{background:var(--glass2);border:1px solid var(--border);border-radius:13px;
+  padding:16px 18px;text-align:center;}
+.sc .num{font-size:1.8rem;font-weight:700;} .sc .lbl{font-size:.7rem;color:var(--text2);margin-top:3px;}
+.c-cyan .num{color:var(--accent);} .c-green .num{color:var(--success);}
+.c-red .num{color:var(--danger);} .c-purple .num{color:#a78bfa;}
+
+/* Progress */
+.pbar-wrap{background:var(--glass2);border:1px solid var(--border);border-radius:13px;
+  padding:14px 20px;margin-bottom:20px;}
+.pbar-wrap h3{font-size:.8rem;color:var(--text2);margin-bottom:8px;}
+.pbar-track{background:var(--glass);border-radius:99px;height:10px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.pbar-lbl{font-size:.9rem;font-weight:700;margin-top:6px;}
+.pct-good{color:var(--success);} .pct-warn{color:var(--warning);} .pct-bad{color:var(--danger);}
+
+/* Monthly */
+.monthly-section{margin-bottom:20px;}
+.monthly-section h2{font-size:.88rem;font-weight:600;color:var(--warning);margin-bottom:8px;}
+.monthly-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.month-card{background:var(--glass2);border:1px solid var(--border);border-radius:11px;
+  padding:12px 14px;cursor:pointer;transition:border-color .2s;}
+.month-card:hover{border-color:var(--warning);}
+.month-card.active{border-color:var(--warning);background:var(--glass);}
+.month-name{font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:6px;}
+.month-pct{font-size:1.4rem;font-weight:700;}
+.month-sub{font-size:.68rem;color:var(--text2);margin-top:2px;}
+.mini-track{background:var(--glass);border-radius:99px;height:4px;margin-top:6px;overflow:hidden;}
+.mini-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--success));}
+
+/* Day rows */
+.day-section{background:var(--glass);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.day-header{padding:14px 18px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.ch h3{font-size:.88rem;font-weight:600;color:var(--warning);}
+.day-header h2{font-size:.86rem;font-weight:600;color:var(--warning);}
+.filter-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.filter-row select{padding:5px 8px;background:var(--glass2);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);font-family:'Sora',sans-serif;font-size:.76rem;outline:none;}
+.fbtn{padding:5px 12px;border:none;border-radius:7px;font-family:'Sora',sans-serif;
+  font-size:.76rem;font-weight:600;cursor:pointer;}
+.fbtn-s{background:var(--glass2);color:var(--text2);}
+.day-row{border-bottom:1px solid var(--border);padding:12px 18px;}
+.day-row:last-child{border-bottom:none;}
+.day-row-header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;flex-wrap:wrap;gap:4px;}
+.day-date{font-size:.83rem;font-weight:600;color:var(--text);}
+.day-summary{font-size:.73rem;color:var(--text2);}
+.day-pct{font-size:.78rem;font-weight:700;}
+.slot-grid{display:flex;gap:5px;flex-wrap:wrap;}
+.slot-chip{padding:3px 10px;border-radius:99px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.slot-present{background:#0d2e1e;color:var(--success);border:1px solid #1a4f32;}
+.slot-absent {background:#3d1520;color:var(--danger); border:1px solid #7f1d2a;}
+.slot-pending{background:#162240;color:var(--text3);  border:1px solid var(--border);}
+
+/* Manual mark inline */
+.manual-btn{padding:3px 10px;border:none;border-radius:6px;font-family:'Sora',sans-serif;
+  font-size:.68rem;font-weight:600;cursor:pointer;margin-left:8px;}
+.btn-mark-p{background:#0d2e1e;color:var(--success);border:1px solid #1a4f32;}
+.btn-mark-a{background:#3d1520;color:var(--danger);border:1px solid #7f1d2a;}
+.btn-mark-p:hover{background:var(--success);color:#000;}
+.btn-mark-a:hover{background:var(--danger);color:#fff;}
+
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:.83rem;}
 </style>
 </head>
 <body>
@@ -39,11 +100,13 @@ body{display:block;}
 </div>
 
 <div class="container">
+
+  <!-- Profile -->
   <div class="profile-card">
     <div class="avatar">{{ student.name[0]|upper }}</div>
     <div class="pi">
       <h2>{{ student.name }}</h2>
-      <p>Student ID: {{ student.student_id }}</p>
+      <p>ID: {{ student.student_id }}</p>
       <div class="tags">
         {% if student.class_name %}<span class="tag a">{{ student.class_name }}</span>{% endif %}
         {% if student.branch %}<span class="tag">{{ student.branch }}</span>{% endif %}
@@ -52,71 +115,180 @@ body{display:block;}
     </div>
   </div>
 
-  <div class="stats cols3">
+  <!-- Stats -->
+  <div class="stats-row">
     <div class="sc c-cyan"><div class="num">{{ summary.total }}</div><div class="lbl">Total Slots</div></div>
     <div class="sc c-green"><div class="num">{{ summary.present }}</div><div class="lbl">Present</div></div>
-    <div class="sc c-purple"><div class="num">{{ summary.percentage }}%</div><div class="lbl">Attendance Rate</div></div>
+    <div class="sc c-red"><div class="num">{{ summary.absent }}</div><div class="lbl">Absent</div></div>
+    <div class="sc c-purple"><div class="num">{{ summary.percentage }}%</div><div class="lbl">Overall Rate</div></div>
   </div>
 
+  <!-- Progress bar -->
   <div class="pbar-wrap">
-    <h3>Attendance Progress</h3>
-    <div class="pbar-track"><div class="pbar-fill" id="pb" style="width:0%"></div></div>
-    <div class="pbar-lbl">{{ summary.percentage }}%</div>
+    <h3>Overall Attendance Progress</h3>
+    <div class="pbar-track">
+      <div class="pbar-fill" id="pb" style="width:0%;
+        background:{% if summary.percentage >= 75 %}linear-gradient(90deg,var(--accent2),var(--success))
+        {% elif summary.percentage >= 50 %}linear-gradient(90deg,#92400e,var(--warning))
+        {% else %}linear-gradient(90deg,#7f1d1d,var(--danger)){% endif %}"></div>
+    </div>
+    <div class="pbar-lbl {% if summary.percentage >= 75 %}pct-good{% elif summary.percentage >= 50 %}pct-warn{% else %}pct-bad{% endif %}">
+      {{ summary.percentage }}%
+    </div>
   </div>
 
-  {% if slots %}
-  <div class="chips">
-    {% for s in slots %}
-    <div class="chip {{ 'hit' if s.label in today_slots else '' }}">
-      {{ '✓ ' if s.label in today_slots else '' }}{{ s.label }}
+  <!-- Monthly breakdown -->
+  {% if summary.monthly %}
+  <div class="monthly-section">
+    <h2>📅 Monthly Breakdown</h2>
+    <div class="monthly-grid">
+      {% for month, data in summary.monthly.items()|sort(reverse=true) %}
+      <div class="month-card {% if loop.first %}active{% endif %}"
+           onclick="filterByMonth('{{ month }}')" id="mc-{{ month }}">
+        <div class="month-name">{{ month }}</div>
+        <div class="month-pct {% if data.pct >= 75 %}pct-good{% elif data.pct >= 50 %}pct-warn{% else %}pct-bad{% endif %}">
+          {{ data.pct }}%
+        </div>
+        <div class="month-sub">{{ data.present }}P / {{ data.absent }}A</div>
+        <div class="mini-track"><div class="mini-fill" style="width:{{ data.pct }}%"></div></div>
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
   {% endif %}
 
-  <div class="card">
-    <div class="ch">
-      <h3>📅 Attendance Records</h3>
-      <div style="display:flex;gap:8px">
-        <select id="f-month" onchange="filterRows()" style="padding:5px 8px;background:var(--glass2);
-          border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;outline:none">
+  <!-- Day-wise slot attendance -->
+  <div class="day-section">
+    <div class="day-header">
+      <h2>📋 Day-wise Slot Attendance</h2>
+      <div class="filter-row">
+        <select id="f-month" onchange="filterByMonth(this.value)">
           <option value="">All Months</option>
-          {% for m in months %}<option>{{ m }}</option>{% endfor %}
+          {% for month in summary.monthly.keys()|sort(reverse=true) %}
+          <option value="{{ month }}">{{ month }}</option>
+          {% endfor %}
         </select>
-        <select id="f-slot" onchange="filterRows()" style="padding:5px 8px;background:var(--glass2);
-          border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;outline:none">
-          <option value="">All Slots</option>
-          {% for s in slots %}<option value="{{ s.label }}">{{ s.label }}</option>{% endfor %}
+        <select id="f-status" onchange="applyFilter()">
+          <option value="">All</option>
+          <option value="has-absent">Has Absent</option>
+          <option value="full-present">Full Present</option>
         </select>
+        <button class="fbtn fbtn-s" onclick="resetFilter()">Reset</button>
       </div>
     </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th style="color:var(--warning)">DATE</th><th style="color:var(--warning)">SLOT</th><th style="color:var(--warning)">TIME</th><th style="color:var(--warning)">STATUS</th><th style="color:var(--warning)">MARKED BY</th></tr></thead>
-      <tbody id="rec-body">
-        {% for rec in records %}
-        <tr data-month="{{ rec.date[:7] }}" data-slot="{{ rec.slot or '' }}">
-          <td>{{ rec.date }}</td>
-          <td><span class="slot-code">{{ rec.slot or '—' }}</span></td>
-          <td>{{ rec.time }}</td>
-          <td><span class="bp">Present</span></td>
-          <td style="color:var(--text3);font-size:.75rem">{{ rec.marked_by or 'auto' }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">No records yet.</td></tr>
+
+    <div id="days-container">
+      {% if daily_records %}
+        {% for day in daily_records %}
+        {% set pct = (day.present / day.total * 100)|round(1) if day.total else 0 %}
+        <div class="day-row"
+             data-month="{{ day.date[:7] }}"
+             data-has-absent="{{ 'true' if day.present < day.total else 'false' }}"
+             id="day-{{ day.date }}">
+
+          <div class="day-row-header">
+            <span class="day-date">{{ day.date }}</span>
+            <span class="day-summary">{{ day.present }}/{{ day.total }} present</span>
+            <span class="day-pct {% if pct >= 75 %}pct-good{% elif pct >= 50 %}pct-warn{% else %}pct-bad{% endif %}">
+              {{ pct }}%
+            </span>
+          </div>
+
+          <div class="slot-grid">
+            {% for slot_rec in day.slots %}
+            {% if slot_rec.status == 'Present' %}
+            <div class="slot-chip slot-present">
+              ✓ {{ slot_rec.slot }}
+              <button class="manual-btn btn-mark-a"
+                      onclick="removeAtt('{{ student.student_id }}','{{ day.date }}','{{ slot_rec.slot }}')">
+                →A
+              </button>
+            </div>
+            {% elif slot_rec.status == 'Absent' %}
+            <div class="slot-chip slot-absent">
+              ✗ {{ slot_rec.slot }}
+              <button class="manual-btn btn-mark-p"
+                      onclick="manualMark('{{ student.student_id }}','{{ day.date }}','{{ slot_rec.slot }}')">
+                →P
+              </button>
+            </div>
+            {% else %}
+            <div class="slot-chip slot-pending">
+              ⏳ {{ slot_rec.slot }}
+              <button class="manual-btn btn-mark-p"
+                      onclick="manualMark('{{ student.student_id }}','{{ day.date }}','{{ slot_rec.slot }}')">
+                →P
+              </button>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+
+        </div>
         {% endfor %}
-      </tbody>
-    </table></div>
+      {% else %}
+        <div class="empty">📭 No attendance records yet.</div>
+      {% endif %}
+    </div>
   </div>
+
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-window.addEventListener('load',()=>setTimeout(()=>document.getElementById('pb').style.width='{{ summary.percentage }}%',200));
-function filterRows(){
-  const m=document.getElementById('f-month').value;
-  const s=document.getElementById('f-slot').value;
-  document.querySelectorAll('#rec-body tr[data-month]').forEach(r=>{
-    r.style.display=(!m||r.dataset.month===m)&&(!s||r.dataset.slot===s)?'':'none';
+window.addEventListener('load',()=>setTimeout(()=>
+  document.getElementById('pb').style.width='{{ summary.percentage }}%',200));
+
+function filterByMonth(month) {
+  document.getElementById('f-month').value = month;
+  document.querySelectorAll('.month-card').forEach(c=>c.classList.remove('active'));
+  if (month) { const mc=document.getElementById(`mc-${month}`); if(mc)mc.classList.add('active'); }
+  applyFilter();
+}
+function applyFilter() {
+  const month  = document.getElementById('f-month').value;
+  const status = document.getElementById('f-status').value;
+  document.querySelectorAll('.day-row[data-month]').forEach(row => {
+    const mOk = !month  || row.dataset.month === month;
+    const sOk = !status
+      || (status==='has-absent'   && row.dataset.hasAbsent==='true')
+      || (status==='full-present' && row.dataset.hasAbsent==='false');
+    row.style.display = (mOk&&sOk) ? '' : 'none';
   });
+}
+function resetFilter() {
+  document.getElementById('f-month').value='';
+  document.getElementById('f-status').value='';
+  document.querySelectorAll('.month-card').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.day-row[data-month]').forEach(r=>r.style.display='');
+}
+
+async function manualMark(sid, date, slot) {
+  const r = await fetch('/teacher/manual_mark', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({student_id:sid, date, slot})
+  });
+  const j = await r.json();
+  toast(j.msg, j.ok);
+  if (j.ok) setTimeout(()=>location.reload(), 800);
+}
+async function removeAtt(sid, date, slot) {
+  const r = await fetch('/teacher/remove_mark', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({student_id:sid, date, slot})
+  });
+  const j = await r.json();
+  toast(j.msg, j.ok);
+  if (j.ok) setTimeout(()=>location.reload(), 800);
+}
+
+function toast(msg, ok) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${ok?'ok':'err'}`;
+  el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 3000);
 }
 </script>
 </body>

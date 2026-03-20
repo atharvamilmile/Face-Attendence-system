@@ -66,7 +66,17 @@ thead th{color:var(--warning);}
       <div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
         <div>
           <div class="cam-wrap">
-            <img src="/video_feed" alt="live feed">
+            <img id="cam-img"
+                 src="{% if camera_running %}/video_feed{% else %}{% endif %}"
+                 alt="live feed"
+                 style="{% if not camera_running %}display:none{% endif %}">
+            <div id="cam-placeholder" style="{% if camera_running %}display:none{% else %}display:flex{% endif %};
+              position:absolute;inset:0;align-items:center;justify-content:center;
+              flex-direction:column;gap:12px;background:#000810">
+              <span style="font-size:2rem">📷</span>
+              <span style="color:var(--text3);font-size:.85rem">Camera is offline</span>
+              <span style="color:var(--text3);font-size:.75rem">Click ▶ Start Camera to begin</span>
+            </div>
             <div class="cam-overlay">
               <span class="cam-badge" id="cam-badge"
                 style="{% if camera_running %}background:#0d2e1ebb;color:var(--success);border:1px solid #1a4f32{% else %}background:#3d1520bb;color:var(--danger);border:1px solid #7f1d2a{% endif %}">
@@ -287,15 +297,28 @@ function show(name) {
   if (name==='attendance') loadAllAtt();
 }
 
+function showCamFeed() {
+  const img = document.getElementById('cam-img');
+  const ph  = document.getElementById('cam-placeholder');
+  if (img) { img.src = '/video_feed?t=' + Date.now(); img.style.display = 'block'; }
+  if (ph)  ph.style.display = 'none';
+}
+function showCamOffline() {
+  const img = document.getElementById('cam-img');
+  const ph  = document.getElementById('cam-placeholder');
+  if (img) { img.src = ''; img.style.display = 'none'; }
+  if (ph)  ph.style.display = 'flex';
+}
 async function camStart() {
   const r=await fetch('/camera/start',{method:'POST'});
   const j=await r.json();
-  toast(j.msg,j.ok); if(j.ok) setBadge(true);
+  toast(j.msg,j.ok);
+  if(j.ok){ setBadge(true); startPoll(); setTimeout(showCamFeed, 500); }
 }
 async function camStop() {
   const r=await fetch('/camera/stop',{method:'POST'});
   const j=await r.json();
-  toast(j.msg,j.ok); setBadge(false);
+  toast(j.msg,j.ok); setBadge(false); showCamOffline();
 }
 function setBadge(live) {
   const b=document.getElementById('cam-badge');
@@ -359,7 +382,9 @@ async function loadProfile(sid) {
   // Stats
   const total   = recs.length;
   const present = recs.filter(r => r.status === 'Present').length;
-  const pct     = total ? Math.round(present / total * 100) : 0;
+  const absent  = recs.filter(r => r.status === 'Absent').length;
+  const denom   = present + absent;
+  const pct     = denom ? Math.round(present / denom * 100) : 0;
 
   // Today's slots
   const today     = new Date().toISOString().slice(0,10);
